@@ -1,4 +1,5 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { FINE_NUDGE, NUDGE } from "./domain/03-move";
 import type { CameraView } from "./domain/01-room";
 import { RoomEditor, useRoom, webglAvailable } from "./features/01-room";
 import { CatalogPanel } from "./features/02-catalog";
@@ -10,6 +11,31 @@ export default function App() {
   const state = useRoom();
   const [view, setView] = useState<CameraView>("perspective");
   const canRender = useMemo(() => webglAvailable(), []);
+
+  // Keyboard moves work with or without the 3D view: arrows step the selected piece (Shift for 1 cm),
+  // R turns it, Delete removes it, Escape lets go. Typing in a field is left alone.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!state.selected || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (target instanceof Element && target.closest("input, textarea, select")) return;
+      const step = event.shiftKey ? FINE_NUDGE : NUDGE;
+      const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+      if (event.key in moves) {
+        event.preventDefault();
+        state.nudgeItem(state.selected, ...moves[event.key]!);
+      } else if (event.key === "r" || event.key === "R") {
+        state.rotateItem(state.selected);
+      } else if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        state.removeItem(state.selected);
+      } else if (event.key === "Escape") {
+        state.select(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [state]);
 
   return (
     <div className="app">
@@ -47,6 +73,11 @@ export default function App() {
           selected={state.selected}
           outside={state.outside}
           error={state.itemError}
+          errorAction={state.errorAction}
+          snapOn={state.snapOn}
+          snapped={state.snapped}
+          onSnapChange={state.setSnapOn}
+          onPosition={(id, target) => state.moveItem(id, target, true)}
           onAdd={state.addItem}
           onSelect={state.select}
           onRotate={state.rotateItem}
@@ -62,7 +93,9 @@ export default function App() {
                 items={state.items}
                 selected={state.selected}
                 outside={state.outside}
+                snap={state.snap}
                 onSelect={state.select}
+                onMove={(id, target) => state.moveItem(id, target)}
               />
             </Suspense>
           ) : (

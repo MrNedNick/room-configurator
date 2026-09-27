@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { cameraPreset, crossingWalls, walls, type CameraView, type Room } from "../../domain/01-room";
 import type { Item } from "../../domain/02-catalog";
+import type { Point } from "../../domain/01-room";
+import type { SnapSettings } from "../../domain/03-move";
 import { ItemsLayer } from "../02-catalog/ItemsLayer";
 
 const WALL_THICKNESS = 0.12;
@@ -86,10 +88,12 @@ interface Props {
   items: Item[];
   selected: string | null;
   outside: string[];
+  snap: SnapSettings;
   onSelect: (id: string | null) => void;
+  onMove: (id: string, target: Point) => void;
 }
 
-export function RoomView({ room, draft, view, items, selected, outside, onSelect }: Props) {
+export function RoomView({ room, draft, view, items, selected, outside, snap, onSelect, onMove }: Props) {
   const [contextLost, setContextLost] = useState(false);
   const [generation, setGeneration] = useState(0);
   const crossing = crossingWalls(draft);
@@ -127,7 +131,7 @@ export function RoomView({ room, draft, view, items, selected, outside, onSelect
       <Grid position={[0, -0.001, 0]} args={[60, 60]} cellSize={0.5} sectionSize={1} infiniteGrid fadeDistance={40} />
       <Floor room={shown} />
       <Walls room={shown} highlight={crossing ?? []} />
-      <ItemsLayer items={items} selected={selected} outside={outside} onSelect={onSelect} />
+      <ItemsLayer room={room} items={items} selected={selected} outside={outside} snap={snap} onSelect={onSelect} onMove={onMove} />
       <CameraRig room={room} view={view} onContextLost={() => setContextLost(true)} />
     </Canvas>
   );

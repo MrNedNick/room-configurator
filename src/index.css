@@ -334,3 +334,39 @@ input {
   }
 
 }
+
+.check {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.check input {
+  width: auto;
+  margin-top: 0.2rem;
+}
+
+.position {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.6rem;
+  margin: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.position legend {
+  padding: 0 0.3rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}

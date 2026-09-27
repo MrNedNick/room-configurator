@@ -12,6 +12,8 @@ import {
   type Item,
 } from "../../domain/02-catalog";
 import { loadScene, saveScene, SCENE_VERSION, setAsideScene } from "../../adapters/scene-store";
+import { DEFAULT_SNAP, moveItem, nudge, NO_SNAP, type MoveResult, type SnapSettings } from "../../domain/03-move";
+import type { Point } from "../../domain/01-room";
 
 export const PRESETS: Record<"rectangle" | "l-shape", Room> = {
   rectangle: { name: "Living room", height: 2.7, corners: [{ x: 0, z: 0 }, { x: 5, z: 0 }, { x: 5, z: 4 }, { x: 0, z: 4 }] },
@@ -22,6 +24,8 @@ export const PRESETS: Record<"rectangle" | "l-shape", Room> = {
   },
 };
 
+const SNAP_KEY = "room-configurator:snap";
+
 let counter = 0;
 const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `item-${Date.now()}-${counter++}`);
 
@@ -29,11 +33,17 @@ interface Furnishing {
   items: Item[];
   selected: string | null;
   error: CatalogError | null;
+  /** Which action the error came from — the same "outside the room" reads differently after a turn or a move. */
+  errorAction: "add" | "turn" | "move" | null;
+  /** What the last move snapped to, for the status line. */
+  snapped: MoveResult["snapped"];
 }
 
 type FurnishingAction =
   | { type: "add"; room: Room; catalogId: string; id: string }
   | { type: "rotate"; room: Room; id: string }
+  | { type: "move"; room: Room; id: string; target: Point; settings: SnapSettings }
+  | { type: "nudge"; room: Room; id: string; dx: number; dz: number }
   | { type: "remove"; id: string }
   | { type: "select"; id: string | null }
   | { type: "reset" };
@@ -46,14 +56,14 @@ function furnish(state: Furnishing, action: FurnishingAction): Furnishing {
   switch (action.type) {
     case "add": {
       const entry = findEntry(FURNITURE, action.catalogId);
-      if (!entry.ok) return { ...state, error: entry.error };
+      if (!entry.ok) return { ...state, error: entry.error, errorAction: "add" };
       const occupied = state.items.flatMap((item) => {
         const other = findEntry(FURNITURE, item.catalogId);
         return other.ok ? [footprint(other.value, item.transform)] : [];
       });
       const placed = placeItem(action.room, entry.value, action.id, occupied);
-      if (!placed.ok) return { ...state, error: placed.error };
-      return { items: [...state.items, placed.value], selected: placed.value.id, error: null };
+      if (!placed.ok) return { ...state, error: placed.error, errorAction: "add" };
+      return { items: [...state.items, placed.value], selected: placed.value.id, error: null, errorAction: null, snapped: null };
     }
     case "rotate": {
       // A quarter turn — refused if it would push the piece through a wall.
@@ -62,15 +72,29 @@ function furnish(state: Furnishing, action: FurnishingAction): Furnishing {
       if (!item || !entry?.ok) return state;
       const turned = { ...item, transform: { ...item.transform, rotation: normaliseRotation(item.transform.rotation + 90) } };
       const allowed = checkPlacement(action.room, entry.value, turned);
-      if (!allowed.ok) return { ...state, error: allowed.error };
-      return { ...state, items: state.items.map((i) => (i.id === item.id ? turned : i)), error: null };
+      if (!allowed.ok) return { ...state, error: allowed.error, errorAction: "turn" };
+      return { ...state, items: state.items.map((i) => (i.id === item.id ? turned : i)), error: null, errorAction: null, snapped: null };
+    }
+    case "move":
+    case "nudge": {
+      const item = state.items.find((candidate) => candidate.id === action.id);
+      const entry = item && findEntry(FURNITURE, item.catalogId);
+      if (!item || !entry?.ok) return state;
+      if (action.type === "move") {
+        const moved = moveItem(action.room, entry.value, item, action.target, action.settings);
+        if (!moved.ok) return { ...state, error: moved.error, errorAction: "move", snapped: null };
+        return { ...state, items: state.items.map((i) => (i.id === item.id ? moved.value.item : i)), error: null, errorAction: null, snapped: moved.value.snapped };
+      }
+      const stepped = nudge(action.room, entry.value, item, action.dx, action.dz);
+      if (!stepped.ok) return { ...state, error: stepped.error, errorAction: "move", snapped: null };
+      return { ...state, items: state.items.map((i) => (i.id === item.id ? stepped.value : i)), error: null, errorAction: null, snapped: null };
     }
     case "remove":
-      return { items: state.items.filter((item) => item.id !== action.id), selected: state.selected === action.id ? null : state.selected, error: null };
+      return { items: state.items.filter((item) => item.id !== action.id), selected: state.selected === action.id ? null : state.selected, error: null, errorAction: null, snapped: null };
     case "select":
       return { ...state, selected: action.id };
     case "reset":
-      return { items: [], selected: null, error: null };
+      return { items: [], selected: null, error: null, errorAction: null, snapped: null };
   }
 }
 
@@ -85,8 +109,16 @@ export function useRoom() {
   const start = initial.ok && initial.value ? initial.value : null;
   const [draft, setDraftState] = useState<Room>(start?.room ?? PRESETS.rectangle);
   const [room, setRoom] = useState<Room>(start?.room ?? PRESETS.rectangle);
-  const [furnishing, dispatch] = useReducer(furnish, { items: start?.items ?? [], selected: null, error: null });
-  const { items, selected, error: itemError } = furnishing;
+  const [furnishing, dispatch] = useReducer(furnish, { items: start?.items ?? [], selected: null, error: null, errorAction: null, snapped: null });
+  const { items, selected, error: itemError, errorAction, snapped } = furnishing;
+  const [snapOn, setSnapOn] = useState(() => {
+    try {
+      return localStorage.getItem(SNAP_KEY) !== "off";
+    } catch {
+      return true;
+    }
+  });
+  const snap = snapOn ? DEFAULT_SNAP : NO_SNAP;
   const check = useMemo(() => validateRoom(draft), [draft]);
   const outside = useMemo(() => itemsOutside(room, items, FURNITURE), [room, items]);
 
@@ -109,6 +141,7 @@ export function useRoom() {
     outside,
     error: check.ok ? null : check.error,
     itemError,
+    errorAction,
     unreadable,
     setDraft,
     usePreset(name: keyof typeof PRESETS) {
@@ -125,6 +158,24 @@ export function useRoom() {
     },
     select(id: string | null) {
       dispatch({ type: "select", id });
+    },
+    snapped,
+    snap,
+    snapOn,
+    setSnapOn(on: boolean) {
+      setSnapOn(on);
+      try {
+        localStorage.setItem(SNAP_KEY, on ? "on" : "off");
+      } catch {
+        // A preference that isn't remembered is fine.
+      }
+    },
+    /** Drag or a typed position; snapping applies to drags only — a typed number is meant exactly. */
+    moveItem(id: string, target: Point, exact = false) {
+      dispatch({ type: "move", room, id, target, settings: exact ? NO_SNAP : snap });
+    },
+    nudgeItem(id: string, dx: number, dz: number) {
+      dispatch({ type: "nudge", room, id, dx, dz });
     },
     startOver() {
       if (unreadable !== null) setAsideScene(unreadable);

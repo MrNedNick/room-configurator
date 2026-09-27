@@ -50,8 +50,21 @@ export function footprint(entry: CatalogEntry, transform: Transform): Footprint 
   return local.map((p) => ({ x: transform.x + p.x * cos - p.z * sin, z: transform.z + p.x * sin + p.z * cos }));
 }
 
-/** Even-odd rule; a point exactly on a wall counts as inside. */
+/** Distance from a point to a wall segment. */
+function distanceToSegment(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const length2 = dx * dx + dz * dz;
+  const t = length2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / length2));
+  return Math.hypot(p.x - (a.x + t * dx), p.z - (a.z + t * dz));
+}
+
+/**
+ * Even-odd rule, with a point on a wall (to the millimetre) counting as inside — a piece pushed against a
+ * wall has corners exactly on it, and the ray test alone is unreliable there.
+ */
 export function pointInRoom(point: Point, room: Pick<Room, "corners">): boolean {
+  if (walls(room).some((wall) => distanceToSegment(point, wall.from, wall.to) < 1e-3)) return true;
   let inside = false;
   const corners = room.corners;
   for (let i = 0, j = corners.length - 1; i < corners.length; j = i++) {

@@ -1,6 +1,6 @@
 import type { CatalogError } from "../../domain/02-catalog";
 
-export function describeCatalogError(error: CatalogError, name = "It"): string {
+export function describeCatalogError(error: CatalogError, name = "It", action: "add" | "turn" | "move" | null = null): string {
   switch (error.reason) {
     case "unknown-entry":
       return "That piece is no longer in the catalogue.";
@@ -12,6 +12,8 @@ export function describeCatalogError(error: CatalogError, name = "It"): string {
     case "no-free-spot":
       return `There is no free spot on the floor big enough for ${name.toLowerCase()}.`;
     case "outside-room":
-      return `Turning ${name.toLowerCase()} here would push it through a wall — move it first.`;
+      return action === "turn"
+        ? `Turning ${name.toLowerCase()} here would push it through a wall — move it first.`
+        : `That would put ${name.toLowerCase()} through a wall — it stays where it was.`;
   }
 }

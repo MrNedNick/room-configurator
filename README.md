@@ -1,7 +1,8 @@
 # Room configurator
 
 Draw a room from its corners, furnish it from a catalogue, and look at it in
-3D or as a floor plan. Next: moving pieces with snapping, then dimensions.
+3D or as a floor plan, moving pieces by dragging, keys or exact numbers.
+Next: materials and light, then dimensions.
 
 **React 19 · Three.js through React Three Fiber · TypeScript · Vite · Vitest**
 
@@ -29,6 +30,10 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   quarter at a time (refused where the turn would hit a wall) or remove
   them. After a room change, pieces left sticking through a wall turn red
   and are listed — never silently deleted.
+- **Moving with snapping** — drag a piece over the floor in 10 cm steps; near
+  a wall it is pulled flush against it. Arrow keys (Shift for 1 cm), R to
+  turn, Delete, Escape, or an exact position typed in — all of them work
+  without the 3D view. A move through a wall is refused and the piece stays.
 - **Kept between visits** — the room is saved in the browser. Saved data that
   no longer reads is not overwritten: the page says so and keeps it aside
   before starting over.
@@ -50,7 +55,8 @@ npm run build
 ```
 
 Walkthroughs with the rules and edge cases: [a room and the camera](docs/examples/01-room.md),
-[the furniture catalogue](docs/examples/02-catalog.md).
+[the furniture catalogue](docs/examples/02-catalog.md),
+[moving and snapping](docs/examples/03-move.md).
 
 ## Layout
 
