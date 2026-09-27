@@ -111,8 +111,84 @@ input {
 .layout {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(260px, 340px) 1fr;
+  grid-template-columns: minmax(250px, 300px) minmax(250px, 300px) 1fr;
   min-height: 0;
+}
+
+.catalog h3 {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.catalogue summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.category ul,
+.placed {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.category li,
+.placed li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+}
+
+.swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.entry-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-size {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.placed li {
+  padding: 0.2rem 0.3rem;
+  border-radius: 6px;
+}
+
+.placed li.is-selected {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.placed li[data-outside] .link {
+  color: var(--danger);
+}
+
+.placed .link {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.placed li button:not(.link) {
+  padding: 0.1rem 0.4rem;
 }
 
 .panel {
@@ -179,8 +255,13 @@ input {
   color: var(--muted);
 }
 
+/* The view stays on screen while the panels beside it scroll: it is as tall as the window, not as tall
+   as the panels, so the room is never drawn below the fold. */
 .view {
-  position: relative;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: calc(100vh - 3.3rem);
   min-height: 420px;
   background: var(--view-bg);
 }
@@ -216,9 +297,35 @@ input {
   white-space: nowrap;
 }
 
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(250px, 320px) 1fr;
+  }
+
+  .catalog {
+    grid-column: 1;
+  }
+
+  .view {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
 @media (max-width: 760px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog,
+  .view {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .view {
+    position: relative;
+    height: 60vh;
   }
 
   .panel {
@@ -226,7 +333,4 @@ input {
     border-bottom: 1px solid var(--border);
   }
 
-  .view {
-    min-height: 60vh;
-  }
 }

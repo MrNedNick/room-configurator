@@ -3,6 +3,8 @@ import { Grid, OrbitControls } from "@react-three/drei";
 import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { cameraPreset, crossingWalls, walls, type CameraView, type Room } from "../../domain/01-room";
+import type { Item } from "../../domain/02-catalog";
+import { ItemsLayer } from "../02-catalog/ItemsLayer";
 
 const WALL_THICKNESS = 0.12;
 
@@ -45,8 +47,9 @@ function Walls({ room, highlight }: { room: Room; highlight: number[] }) {
 
 /** Moves the camera when the room or the view changes, and reports a lost WebGL context. */
 function CameraRig({ room, view, onContextLost }: { room: Room; view: CameraView; onContextLost: () => void }) {
-  const { camera, gl } = useThree();
-  const preset = useMemo(() => cameraPreset(room, view), [room, view]);
+  const { camera, gl, size } = useThree();
+  const aspect = size.height > 0 ? size.width / size.height : 1.6;
+  const preset = useMemo(() => cameraPreset(room, view, 50, aspect), [room, view, aspect]);
 
   useEffect(() => {
     camera.position.set(...preset.position);
@@ -80,9 +83,13 @@ interface Props {
   /** A draft that fails validation: its crossing walls are drawn in red on top of the last valid room. */
   draft: Room;
   view: CameraView;
+  items: Item[];
+  selected: string | null;
+  outside: string[];
+  onSelect: (id: string | null) => void;
 }
 
-export function RoomView({ room, draft, view }: Props) {
+export function RoomView({ room, draft, view, items, selected, outside, onSelect }: Props) {
   const [contextLost, setContextLost] = useState(false);
   const [generation, setGeneration] = useState(0);
   const crossing = crossingWalls(draft);
@@ -107,13 +114,20 @@ export function RoomView({ room, draft, view }: Props) {
   }
 
   return (
-    <Canvas key={generation} shadows camera={{ fov: 50, near: 0.05, far: 500 }} aria-label="3D view of the room">
+    <Canvas
+      key={generation}
+      shadows
+      camera={{ fov: 50, near: 0.05, far: 500 }}
+      aria-label="3D view of the room"
+      onPointerMissed={() => onSelect(null)}
+    >
       <color attach="background" args={["#1d2027"]} />
       <hemisphereLight args={["#ffffff", "#5a5048", 0.9]} />
       <directionalLight position={[6, 10, 4]} intensity={1.4} castShadow />
       <Grid position={[0, -0.001, 0]} args={[60, 60]} cellSize={0.5} sectionSize={1} infiniteGrid fadeDistance={40} />
       <Floor room={shown} />
       <Walls room={shown} highlight={crossing ?? []} />
+      <ItemsLayer items={items} selected={selected} outside={outside} onSelect={onSelect} />
       <CameraRig room={room} view={view} onContextLost={() => setContextLost(true)} />
     </Canvas>
   );

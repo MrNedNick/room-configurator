@@ -73,6 +73,14 @@ describe("cameraPreset", () => {
     expect(plan.maxPolarAngle).toBe(0);
   });
 
+  it("a tall narrow viewport pulls the camera back so the full width still fits", () => {
+    const wide = cameraPreset(room.value, "plan", 50, 2);
+    const narrow = cameraPreset(room.value, "plan", 50, 0.5);
+    expect(narrow.position[1]).toBeGreaterThan(wide.position[1]);
+    const halfFov = (25 * Math.PI) / 180;
+    expect((narrow.position[1] - room.value.height) * Math.tan(halfFov) * 0.5).toBeGreaterThanOrEqual(4 - 1e-9);
+  });
+
   it("perspective view stays above the floor and can't orbit out of reach", () => {
     const view = cameraPreset(room.value, "perspective");
     expect(view.position[1]).toBeGreaterThan(room.value.height);

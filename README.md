@@ -1,7 +1,7 @@
 # Room configurator
 
-Draw a room from its corners, look at it in 3D or as a floor plan, and (next)
-furnish it and get a plan with dimensions.
+Draw a room from its corners, furnish it from a catalogue, and look at it in
+3D or as a floor plan. Next: moving pieces with snapping, then dimensions.
 
 **React 19 · Three.js through React Three Fiber · TypeScript · Vite · Vitest**
 
@@ -24,6 +24,11 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   over 50 m and ceilings outside 2–6 m.
 - **3D and plan views** — the camera is fitted to the room; orbiting is
   limited so the room can't be lost, and the plan view looks straight down.
+- **Furniture from a catalogue** — ten real-sized pieces; each new one goes to
+  the nearest free spot on the floor, clear of the others. Turn pieces a
+  quarter at a time (refused where the turn would hit a wall) or remove
+  them. After a room change, pieces left sticking through a wall turn red
+  and are listed — never silently deleted.
 - **Kept between visits** — the room is saved in the browser. Saved data that
   no longer reads is not overwritten: the page says so and keeps it aside
   before starting over.
@@ -44,7 +49,8 @@ npm run lint      # oxlint
 npm run build
 ```
 
-Walkthrough with the rules and edge cases: [a room and the camera](docs/examples/01-room.md).
+Walkthroughs with the rules and edge cases: [a room and the camera](docs/examples/01-room.md),
+[the furniture catalogue](docs/examples/02-catalog.md).
 
 ## Layout
 

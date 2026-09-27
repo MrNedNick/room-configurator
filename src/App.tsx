@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import type { CameraView } from "./domain/01-room";
 import { RoomEditor, useRoom, webglAvailable } from "./features/01-room";
+import { CatalogPanel } from "./features/02-catalog";
 
 // Three.js is most of the download; the editor is usable while it arrives.
 const RoomView = lazy(() => import("./features/01-room/RoomView").then((module) => ({ default: module.RoomView })));
@@ -41,10 +42,28 @@ export default function App() {
           onChange={state.setDraft}
           onPreset={state.usePreset}
         />
+        <CatalogPanel
+          items={state.items}
+          selected={state.selected}
+          outside={state.outside}
+          error={state.itemError}
+          onAdd={state.addItem}
+          onSelect={state.select}
+          onRotate={state.rotateItem}
+          onRemove={state.removeItem}
+        />
         <div className="view" data-testid="view">
           {canRender ? (
             <Suspense fallback={<div className="view-fallback" role="status"><p>Loading the 3D view…</p></div>}>
-              <RoomView room={state.room} draft={state.draft} view={view} />
+              <RoomView
+                room={state.room}
+                draft={state.draft}
+                view={view}
+                items={state.items}
+                selected={state.selected}
+                outside={state.outside}
+                onSelect={state.select}
+              />
             </Suspense>
           ) : (
             <div className="view-fallback" role="note">

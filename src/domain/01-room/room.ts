@@ -146,14 +146,16 @@ export function validateRoom(input: Room): Result<Room, RoomError> {
 }
 
 /**
- * Camera for a room: the plan view looks straight down from high enough to fit the whole floor in a 50°
- * field of view; the perspective view stands off a corner at eye-level-ish height. Orbiting is limited
- * to a sensible range around the room so it can't be lost.
+ * Camera for a room: the plan view looks straight down from high enough to fit the whole floor — in both
+ * directions, so a tall narrow viewport still shows the full width; the perspective view stands off a
+ * corner above the ceiling. Orbiting is limited to a sensible range around the room so it can't be lost.
  */
-export function cameraPreset(room: Room, view: CameraView, fov = 50): CameraPreset {
+export function cameraPreset(room: Room, view: CameraView, fov = 50, aspect = 1.6): CameraPreset {
   const box = bounds(room);
   const span = Math.max(box.width, box.depth);
-  const fit = span / 2 / Math.tan(((fov / 2) * Math.PI) / 180);
+  const tanHalf = Math.tan(((fov / 2) * Math.PI) / 180);
+  // Distance at which `span` fits vertically, and horizontally given the viewport's width/height.
+  const fit = Math.max(span / 2 / tanHalf, span / 2 / (tanHalf * Math.max(aspect, 0.1)));
   const target: [number, number, number] = [box.centre.x, 0, box.centre.z];
   if (view === "plan") {
     return {
@@ -161,7 +163,7 @@ export function cameraPreset(room: Room, view: CameraView, fov = 50): CameraPres
       position: [box.centre.x, fit * 1.15 + room.height, box.centre.z + 0.001],
       target,
       minDistance: span * 0.5,
-      maxDistance: span * 4,
+      maxDistance: Math.max(span * 4, fit * 2),
       maxPolarAngle: 0,
     };
   }
@@ -171,7 +173,7 @@ export function cameraPreset(room: Room, view: CameraView, fov = 50): CameraPres
     position: [box.centre.x + distance * 0.7, room.height + distance * 0.45, box.centre.z + distance * 0.7],
     target: [box.centre.x, room.height * 0.35, box.centre.z],
     minDistance: Math.max(1.5, span * 0.3),
-    maxDistance: span * 4,
+    maxDistance: Math.max(span * 4, distance * 2),
     maxPolarAngle: Math.PI / 2 - 0.05,
   };
 }
