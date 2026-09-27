@@ -44,6 +44,8 @@ npm run lint      # oxlint
 npm run build
 ```
 
+Walkthrough with the rules and edge cases: [a room and the camera](docs/examples/01-room.md).
+
 ## Layout
 
 ```
