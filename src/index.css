@@ -266,6 +266,7 @@ input {
 }
 
 .panel {
+  position: relative;
   padding: 1rem;
   border-right: 1px solid var(--border);
   background: var(--panel);
@@ -370,6 +371,8 @@ input {
 
 .visually-hidden {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
