@@ -6,6 +6,8 @@ import { CatalogPanel } from "./features/02-catalog";
 import { FURNITURE } from "./domain/02-catalog";
 import { lightRig } from "./domain/04-finish";
 import { FinishPanel } from "./features/04-finish";
+import { clearances, collisions, narrowPassages, wallLabels } from "./domain/05-measure";
+import { MeasureSummary } from "./features/05-measure";
 
 // Three.js is most of the download; the editor is usable while it arrives.
 const RoomView = lazy(() => import("./features/01-room/RoomView").then((module) => ({ default: module.RoomView })));
@@ -14,6 +16,15 @@ export default function App() {
   const state = useRoom();
   const [view, setView] = useState<CameraView>("perspective");
   const canRender = useMemo(() => webglAvailable(), []);
+  const measured = useMemo(() => {
+    const around = state.selected ? clearances(state.room, state.items, FURNITURE, state.selected) : null;
+    return {
+      labels: wallLabels(state.room),
+      clearances: around?.ok ? around.value : [],
+      collisions: collisions(state.items, FURNITURE),
+      passages: narrowPassages(state.items, FURNITURE),
+    };
+  }, [state.room, state.items, state.selected]);
   const rig = useMemo(() => lightRig(state.room, state.items, state.lighting, FURNITURE), [state.room, state.items, state.lighting]);
 
   // Keyboard moves work with or without the 3D view: arrows step the selected piece (Shift for 1 cm),
@@ -53,6 +64,9 @@ export default function App() {
             Plan
           </button>
         </div>
+        <button type="button" aria-pressed={state.dimensionsOn} onClick={() => state.setDimensionsOn(!state.dimensionsOn)}>
+          Dimensions
+        </button>
       </header>
 
       {state.unreadable !== null && (
@@ -86,6 +100,16 @@ export default function App() {
           onSelect={state.select}
           onRotate={state.rotateItem}
           onRemove={state.removeItem}
+          measures={
+            <MeasureSummary
+              items={state.items}
+              selected={state.items.find((item) => item.id === state.selected) ?? null}
+              clearances={measured.clearances}
+              collisions={measured.collisions}
+              passages={measured.passages}
+              onSelect={state.select}
+            />
+          }
         />
         <FinishPanel
           finish={state.finish}
@@ -110,6 +134,9 @@ export default function App() {
                 snap={state.snap}
                 finish={state.finish}
                 rig={rig}
+                labels={state.dimensionsOn ? measured.labels : []}
+                clearances={state.dimensionsOn ? measured.clearances : []}
+                colliding={[...new Set(measured.collisions.flatMap((pair) => [pair.a, pair.b]))]}
                 onSelect={state.select}
                 onMove={(id, target) => state.moveItem(id, target)}
               />

@@ -14,6 +14,8 @@ interface Props {
   snap: SnapSettings;
   /** Lamps that are switched on: drawn glowing. */
   glowing: string[];
+  /** Pieces standing in another piece: drawn in amber. */
+  colliding?: string[];
   onSelect: (id: string) => void;
   onMove: (id: string, target: Point) => void;
 }
@@ -25,7 +27,7 @@ const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
  * dragging, orbiting is paused (so one finger or the mouse moves the piece, not the camera) and the
  * piece turns red wherever it would stick through a wall — dropping it there puts it back.
  */
-export function ItemsLayer({ room, items, selected, outside, snap, glowing, onSelect, onMove }: Props) {
+export function ItemsLayer({ room, items, selected, outside, snap, glowing, colliding = [], onSelect, onMove }: Props) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
   const [drag, setDrag] = useState<{ id: string; x: number; z: number; valid: boolean } | null>(null);
   const grab = useRef<{ dx: number; dz: number }>({ dx: 0, dz: 0 });
@@ -81,7 +83,7 @@ export function ItemsLayer({ room, items, selected, outside, snap, glowing, onSe
             <mesh position={[0, height / 2, 0]} castShadow receiveShadow scale={entry.shape === "cylinder" ? [width / 2, height, depth / 2] : [width, height, depth]}>
               {entry.shape === "cylinder" ? <cylinderGeometry args={[1, 1, 1, 32]} /> : <boxGeometry args={[1, 1, 1]} />}
               <meshStandardMaterial
-                color={red ? "#d23c3c" : finish.colour}
+                color={red ? "#d23c3c" : colliding.includes(item.id) ? "#e8a33c" : finish.colour}
                 roughness={finish.roughness}
                 metalness={finish.metalness}
                 emissive={item.id === selected ? "#3a5a9a" : lit ? "#ffcf8a" : "#000000"}

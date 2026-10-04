@@ -26,6 +26,7 @@ export const PRESETS: Record<"rectangle" | "l-shape", Room> = {
 };
 
 const SNAP_KEY = "room-configurator:snap";
+const DIMENSIONS_KEY = "room-configurator:dimensions";
 
 let counter = 0;
 const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `item-${Date.now()}-${counter++}`);
@@ -131,6 +132,13 @@ export function useRoom() {
     }
   });
   const snap = snapOn ? DEFAULT_SNAP : NO_SNAP;
+  const [dimensionsOn, setDimensionsOn] = useState(() => {
+    try {
+      return localStorage.getItem(DIMENSIONS_KEY) !== "off";
+    } catch {
+      return true;
+    }
+  });
   const check = useMemo(() => validateRoom(draft), [draft]);
   const outside = useMemo(() => itemsOutside(room, items, FURNITURE), [room, items]);
 
@@ -204,6 +212,15 @@ export function useRoom() {
       dispatch({ type: "material", id, materialId });
     },
     setLighting,
+    dimensionsOn,
+    setDimensionsOn(on: boolean) {
+      setDimensionsOn(on);
+      try {
+        localStorage.setItem(DIMENSIONS_KEY, on ? "on" : "off");
+      } catch {
+        // A preference that isn't remembered is fine.
+      }
+    },
     startOver() {
       if (unreadable !== null) setAsideScene(unreadable);
       setUnreadable(null);

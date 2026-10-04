@@ -90,6 +90,8 @@ input {
 .topbar h1 {
   margin: 0;
   font-size: 1.1rem;
+  /* Title on the left; the view and dimension toggles together on the right. */
+  margin-right: auto;
 }
 
 .views {
@@ -429,4 +431,13 @@ input {
   margin: 0;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.measures ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.measures p {
+  margin: 0;
 }

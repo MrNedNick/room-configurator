@@ -1,8 +1,9 @@
 # Room configurator
 
 Draw a room from its corners, furnish it from a catalogue, choose floors, wall
-colours and finishes, set the light, and look at it in 3D or as a floor plan,
-moving pieces by dragging, keys or exact numbers. Next: dimensions.
+colours and finishes, set the light, and look at it in 3D or as a floor plan
+with every length written on it — moving pieces by dragging, keys or exact
+numbers. Next: saving and exporting the plan.
 
 **React 19 · Three.js through React Three Fiber · TypeScript · Vite · Vitest**
 
@@ -39,6 +40,11 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   night light; lamps from the catalogue glow and light the room around them.
   A crowded room stays smooth: only four lamps cast real light and shadows go
   off past 40 pieces — and the panel says so.
+- **Dimensions and collisions** — wall lengths around the plan; for the
+  selected piece, dashed lines to the nearest wall on each side with the free
+  floor written on them. Pieces standing in each other turn amber and are
+  named; gaps under 60 cm are pointed out as too narrow to walk through. All
+  of it is also written in the panel, so it works without 3D.
 - **Kept between visits** — the room, its furniture, finishes and light are
   saved in the browser; rooms saved by earlier versions open with defaults.
   Saved data that no longer reads is not overwritten: the page says so and
@@ -63,7 +69,8 @@ npm run build
 Walkthroughs with the rules and edge cases: [a room and the camera](docs/examples/01-room.md),
 [the furniture catalogue](docs/examples/02-catalog.md),
 [moving and snapping](docs/examples/03-move.md),
-[finishes and light](docs/examples/04-finish.md).
+[finishes and light](docs/examples/04-finish.md),
+[dimensions and collisions](docs/examples/05-measure.md).
 
 ## Layout
 

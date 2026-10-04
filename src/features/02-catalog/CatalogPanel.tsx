@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CATEGORY_LABELS, FURNITURE, type CatalogEntry, type CatalogError, type Item } from "../../domain/02-catalog";
 import { describeCatalogError } from "./messages";
 import type { Point } from "../../domain/01-room";
@@ -17,11 +18,13 @@ interface Props {
   onSelect: (id: string) => void;
   onRotate: (id: string) => void;
   onRemove: (id: string) => void;
+  /** Measurements of the layout, shown under the list of pieces. */
+  measures?: ReactNode;
 }
 
 const size = (entry: CatalogEntry) => `${entry.size.width} × ${entry.size.depth} m`;
 
-export function CatalogPanel({ items, selected, outside, error, errorAction = null, snapOn, snapped, onSnapChange, onPosition, onAdd, onSelect, onRotate, onRemove }: Props) {
+export function CatalogPanel({ items, selected, outside, error, errorAction = null, snapOn, snapped, onSnapChange, onPosition, onAdd, onSelect, onRotate, onRemove, measures }: Props) {
   const current = items.find((item) => item.id === selected) ?? null;
   const categories = Object.keys(CATEGORY_LABELS) as CatalogEntry["category"][];
   const errorName = error?.id ? (FURNITURE.find((e) => e.id === error.id)?.name ?? items.find((i) => i.id === error.id)?.name) : undefined;
@@ -119,6 +122,7 @@ export function CatalogPanel({ items, selected, outside, error, errorAction = nu
           ) : (
             <p className="hint">Select a piece to move it.</p>
           )}
+          {measures}
         </>
       )}
     </section>

@@ -7,6 +7,8 @@ import type { Item } from "../../domain/02-catalog";
 import type { Point } from "../../domain/01-room";
 import type { SnapSettings } from "../../domain/03-move";
 import { ItemsLayer } from "../02-catalog/ItemsLayer";
+import { Dimensions } from "../05-measure/Dimensions";
+import type { Clearance, WallLabel } from "../../domain/05-measure";
 import { findMaterial, type Finish, type LightRig, type Material } from "../../domain/04-finish";
 
 const FALLBACK: Pick<Material, "colour" | "roughness" | "metalness"> = { colour: "#d9cbb4", roughness: 0.8, metalness: 0 };
@@ -101,11 +103,15 @@ interface Props {
   snap: SnapSettings;
   finish: Finish;
   rig: LightRig;
+  /** Wall lengths and the selected piece's clearances; empty when dimensions are switched off. */
+  labels: WallLabel[];
+  clearances: Clearance[];
+  colliding: string[];
   onSelect: (id: string | null) => void;
   onMove: (id: string, target: Point) => void;
 }
 
-export function RoomView({ room, draft, view, items, selected, outside, snap, finish, rig, onSelect, onMove }: Props) {
+export function RoomView({ room, draft, view, items, selected, outside, snap, finish, rig, labels, clearances, colliding, onSelect, onMove }: Props) {
   const [contextLost, setContextLost] = useState(false);
   const [generation, setGeneration] = useState(0);
   const crossing = crossingWalls(draft);
@@ -154,9 +160,11 @@ export function RoomView({ room, draft, view, items, selected, outside, snap, fi
         outside={outside}
         snap={snap}
         glowing={[...rig.lamps.map((lamp) => lamp.itemId), ...rig.glowingOnly]}
+        colliding={colliding}
         onSelect={onSelect}
         onMove={onMove}
       />
+      <Dimensions labels={labels} clearances={clearances} />
       <CameraRig room={room} view={view} onContextLost={() => setContextLost(true)} />
     </Canvas>
   );
