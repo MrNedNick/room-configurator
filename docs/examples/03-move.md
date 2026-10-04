@@ -44,3 +44,6 @@ the integration test runs, in jsdom.
   inner corner of an L), refused drops, arrow-key steps.
 - `test/integration/03-move.test.tsx` — keys, typed positions, the snapping
   preference, refused moves and stage 2's "outside the room", with no WebGL.
+
+Escape, a cancelled pointer, lost pointer capture or window blur cancels the
+preview and restores camera controls. A cancelled drag does not save a move.

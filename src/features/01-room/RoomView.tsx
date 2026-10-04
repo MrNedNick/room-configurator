@@ -1,8 +1,8 @@
 import { Canvas, useThree } from "@react-three/fiber";
 import { Grid, OrbitControls } from "@react-three/drei";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import * as THREE from "three";
-import { bounds, cameraPreset, crossingWalls, walls, type CameraView, type Room } from "../../domain/01-room";
+import { bounds, cameraPreset, planZoom, crossingWalls, walls, type CameraView, type Room } from "../../domain/01-room";
 import type { Item } from "../../domain/02-catalog";
 import type { Point } from "../../domain/01-room";
 import type { SnapSettings } from "../../domain/03-move";
@@ -59,16 +59,33 @@ function Walls({ room, highlight, material }: { room: Room; highlight: number[];
   );
 }
 
-/** Moves the camera when the room or the view changes, and reports a lost WebGL context. */
-function CameraRig({ room, view, onContextLost }: { room: Room; view: CameraView; onContextLost: () => void }) {
+/** Fits each projection to the room and restores the view on request. */
+function CameraRig({ room, view, reset, onContextLost }: { room: Room; view: CameraView; reset: number; onContextLost: () => void }) {
   const { camera, gl, size } = useThree();
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
   const aspect = size.height > 0 ? size.width / size.height : 1.6;
-  const preset = useMemo(() => cameraPreset(room, view, 50, aspect), [room, view, aspect]);
+  const preset = cameraPreset(room, view, 50, aspect);
+  const [px, py, pz] = preset.position;
+  const [tx, ty, tz] = preset.target;
+  const zoom = planZoom(room, size.width, size.height);
 
   useEffect(() => {
-    camera.position.set(...preset.position);
-    camera.lookAt(...preset.target);
-  }, [camera, preset]);
+    const orbit = controls.current;
+    // Flush any unfinished damping before applying the new frame.
+    if (orbit) { orbit.enableDamping = false; orbit.update(); }
+    camera.up.set(0, view === "plan" ? 0 : 1, view === "plan" ? -1 : 0);
+    camera.position.set(px, py, pz);
+    // Three.js cameras are mutable objects owned by the renderer.
+    // oxlint-disable-next-line react/immutability
+    if (camera instanceof THREE.OrthographicCamera) camera.zoom = zoom;
+    camera.lookAt(tx, ty, tz);
+    camera.updateProjectionMatrix();
+    if (orbit) {
+      orbit.target.set(tx, ty, tz);
+      orbit.update();
+      orbit.enableDamping = true;
+    }
+  }, [camera, view, px, py, pz, tx, ty, tz, zoom, reset]);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -82,10 +99,12 @@ function CameraRig({ room, view, onContextLost }: { room: Room; view: CameraView
 
   return (
     <OrbitControls
-      target={preset.target}
+      ref={controls}
       minDistance={preset.minDistance}
       maxDistance={preset.maxDistance}
-      maxPolarAngle={preset.maxPolarAngle}
+      minZoom={zoom / 4}
+      maxZoom={zoom * 8}
+      maxPolarAngle={view === "plan" ? Math.PI : preset.maxPolarAngle}
       enableRotate={view === "perspective"}
       makeDefault
     />
@@ -97,6 +116,7 @@ interface Props {
   /** A draft that fails validation: its crossing walls are drawn in red on top of the last valid room. */
   draft: Room;
   view: CameraView;
+  reset?: number;
   items: Item[];
   selected: string | null;
   outside: string[];
@@ -111,7 +131,7 @@ interface Props {
   onMove: (id: string, target: Point) => void;
 }
 
-export function RoomView({ room, draft, view, items, selected, outside, snap, finish, rig, labels, clearances, colliding, onSelect, onMove }: Props) {
+export function RoomView({ room, draft, view, reset = 0, items, selected, outside, snap, finish, rig, labels, clearances, colliding, onSelect, onMove }: Props) {
   const [contextLost, setContextLost] = useState(false);
   const [generation, setGeneration] = useState(0);
   const crossing = crossingWalls(draft);
@@ -137,9 +157,11 @@ export function RoomView({ room, draft, view, items, selected, outside, snap, fi
 
   return (
     <Canvas
-      key={generation}
+      key={`${generation}:${view}`}
       shadows={rig.shadows}
-      camera={{ fov: 50, near: 0.05, far: 500 }}
+      orthographic={view === "plan"}
+      camera={view === "plan" ? { near: 0.05, far: 500 } : { fov: 50, near: 0.05, far: 500 }}
+      tabIndex={0}
       aria-label="3D view of the room"
       onPointerMissed={() => onSelect(null)}
     >
@@ -165,7 +187,7 @@ export function RoomView({ room, draft, view, items, selected, outside, snap, fi
         onMove={onMove}
       />
       <Dimensions labels={labels} clearances={clearances} roomSize={Math.max(bounds(room).width, bounds(room).depth)} />
-      <CameraRig room={room} view={view} onContextLost={() => setContextLost(true)} />
+      <CameraRig room={room} view={view} reset={reset} onContextLost={() => setContextLost(true)} />
     </Canvas>
   );
 }

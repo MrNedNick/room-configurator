@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bounds,
   cameraPreset,
+  planZoom,
   crossingWalls,
   floorArea,
   rectangularRoom,
@@ -86,5 +87,19 @@ describe("cameraPreset", () => {
     expect(view.position[1]).toBeGreaterThan(room.value.height);
     expect(view.maxPolarAngle).toBeLessThan(Math.PI / 2);
     expect(view.minDistance).toBeLessThan(view.maxDistance);
+  });
+});
+
+describe("orthographic plan fitting", () => {
+  it("fits wide and tall rooms with room left for dimensions on every viewport", () => {
+    for (const [width, height] of [[1440, 900], [360, 230], [180, 600]]) {
+      for (const room of [living, lShape]) {
+        const zoom = planZoom(room, width!, height!);
+        const box = bounds(room);
+        expect(box.width * zoom).toBeLessThan(width!);
+        expect(box.depth * zoom).toBeLessThan(height!);
+        expect(zoom).toBeGreaterThan(0);
+      }
+    }
   });
 });

@@ -17,6 +17,7 @@ const RoomView = lazy(() => import("./features/01-room/RoomView").then((module) 
 export default function App() {
   const state = useRoom();
   const [view, setView] = useState<CameraView>("perspective");
+  const [cameraReset, setCameraReset] = useState(0);
   const [panel, setPanel] = useState("room");
   const canRender = useMemo(() => webglAvailable(), []);
   const measured = useMemo(() => {
@@ -67,6 +68,7 @@ export default function App() {
             Plan
           </button>
         </div>
+        <button type="button" onClick={() => setCameraReset((n) => n + 1)}>Reset view</button>
         <button type="button" aria-pressed={state.dimensionsOn} onClick={() => state.setDimensionsOn(!state.dimensionsOn)}>
           Dimensions
         </button>
@@ -144,6 +146,7 @@ export default function App() {
                 room={state.room}
                 draft={state.draft}
                 view={view}
+                reset={cameraReset}
                 items={state.items}
                 selected={state.selected}
                 outside={state.outside}

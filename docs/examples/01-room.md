@@ -46,3 +46,7 @@ with `y` up.
 - `test/adapters/scene-store.test.ts` — saving, unreadable data, a full storage.
 - `test/features/01-room.test.tsx`, `test/integration/01-room.test.tsx` — the
   UI in jsdom (which has no WebGL, so the fallback is covered too).
+
+Plan uses an orthographic projection, so parallel walls remain parallel and
+furniture keeps the same scale across the floor. Reset view restores the fitted
+frame after zooming or panning, in both Plan and 3D.

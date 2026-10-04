@@ -1,5 +1,5 @@
 import { useThree, type ThreeEvent } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Point, Room } from "../../domain/01-room";
 import { footprint, FURNITURE, insideRoom, type Item } from "../../domain/02-catalog";
@@ -29,11 +29,38 @@ const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
  */
 export function ItemsLayer({ room, items, selected, outside, snap, glowing, colliding = [], onSelect, onMove }: Props) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
-  const [drag, setDrag] = useState<{ id: string; x: number; z: number; valid: boolean } | null>(null);
-  const grab = useRef<{ dx: number; dz: number }>({ dx: 0, dz: 0 });
+  const gl = useThree((state) => state.gl);
+  type Preview = { id: string; x: number; z: number; target: Point; valid: boolean };
+  type Capture = { setPointerCapture: (id: number) => void; releasePointerCapture: (id: number) => void };
+  const [drag, setDrag] = useState<Preview | null>(null);
+  const active = useRef<{ pointerId: number; capture: Capture; preview: Preview; dx: number; dz: number } | null>(null);
   const hit = new THREE.Vector3();
-
   const pointOnFloor = (event: ThreeEvent<PointerEvent>) => (event.ray.intersectPlane(floor, hit) ? { x: hit.x, z: hit.z } : null);
+
+  useEffect(() => {
+    const cancel = () => {
+      const current = active.current;
+      active.current = null;
+      if (controls) controls.enabled = true;
+      if (current) {
+        try { current.capture.releasePointerCapture(current.pointerId); } catch { /* Capture may already be gone. */ }
+      }
+    };
+    const onCancel = () => { cancel(); setDrag(null); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onCancel(); };
+    const canvas = gl.domElement;
+    canvas.addEventListener("pointercancel", onCancel);
+    canvas.addEventListener("lostpointercapture", onCancel);
+    window.addEventListener("blur", onCancel);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      canvas.removeEventListener("pointercancel", onCancel);
+      canvas.removeEventListener("lostpointercapture", onCancel);
+      window.removeEventListener("blur", onCancel);
+      window.removeEventListener("keydown", onKey);
+      cancel();
+    };
+  }, [controls, gl]);
 
   return (
     <>
@@ -53,30 +80,41 @@ export function ItemsLayer({ room, items, selected, outside, snap, glowing, coll
             // The domain turns clockwise seen from above; Three.js turns anticlockwise about +y.
             rotation={[0, (-transform.rotation * Math.PI) / 180, 0]}
             onPointerDown={(event) => {
+              if (event.button !== 0 || active.current) return;
               event.stopPropagation();
               onSelect(item.id);
               const point = pointOnFloor(event);
               if (!point) return;
-              grab.current = { dx: item.transform.x - point.x, dz: item.transform.z - point.z };
-              (event.target as unknown as Element).setPointerCapture(event.pointerId);
+              const preview = { id: item.id, x: item.transform.x, z: item.transform.z, target: { x: item.transform.x, z: item.transform.z }, valid: true };
+              const capture = event.target as unknown as Capture;
+              active.current = { pointerId: event.pointerId, capture, preview, dx: item.transform.x - point.x, dz: item.transform.z - point.z };
+              capture.setPointerCapture(event.pointerId);
+              gl.domElement.tabIndex = 0;
+              gl.domElement.focus({ preventScroll: true });
               if (controls) controls.enabled = false;
-              setDrag({ id: item.id, x: item.transform.x, z: item.transform.z, valid: true });
+              setDrag(preview);
             }}
             onPointerMove={(event) => {
-              if (!dragging) return;
+              const current = active.current;
+              if (current?.preview.id !== item.id || current.pointerId !== event.pointerId) return;
               event.stopPropagation();
               const point = pointOnFloor(event);
               if (!point) return;
-              const target = { x: point.x + grab.current.dx, z: point.z + grab.current.dz };
+              const target = { x: point.x + current.dx, z: point.z + current.dz };
               const snapped = snapPosition(room, entry, item, target, snap).transform;
-              setDrag({ id: item.id, x: snapped.x, z: snapped.z, valid: insideRoom(footprint(entry, snapped), room) });
+              current.preview = { id: item.id, x: snapped.x, z: snapped.z, target, valid: insideRoom(footprint(entry, snapped), room) };
+              setDrag(current.preview);
             }}
             onPointerUp={(event) => {
-              if (!dragging) return;
+              const current = active.current;
+              if (current?.preview.id !== item.id || current.pointerId !== event.pointerId) return;
               event.stopPropagation();
-              (event.target as unknown as Element).releasePointerCapture(event.pointerId);
+              active.current = null;
               if (controls) controls.enabled = true;
-              if (drag.valid && (drag.x !== item.transform.x || drag.z !== item.transform.z)) onMove(item.id, { x: drag.x, z: drag.z });
+              current.capture.releasePointerCapture(event.pointerId);
+              const preview = current.preview;
+              // Commit the raw target: the domain applies snapping once, just as in the preview.
+              if (preview.valid && (preview.x !== item.transform.x || preview.z !== item.transform.z)) onMove(item.id, preview.target);
               setDrag(null);
             }}
           >

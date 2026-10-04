@@ -28,7 +28,8 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   with fewer than three corners, walls under 1 m, repeated corners, rooms
   over 50 m and ceilings outside 2–6 m.
 - **3D and plan views** — the camera is fitted to the room; orbiting is
-  limited so the room can't be lost, and the plan view looks straight down.
+  limited so the room can't be lost. Plan uses an orthographic camera for true
+  scale; Reset view returns either camera to the fitted frame.
 - **A workspace that fits the window** — the scene stays visible while the room,
   furniture and finish panels scroll independently. On smaller screens, switch
   between settings panels while keeping the scene on screen.
@@ -40,7 +41,8 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
 - **Moving with snapping** — drag a piece over the floor in 10 cm steps; near
   a wall it is pulled flush against it. Arrow keys (Shift for 1 cm), R to
   turn, Delete, Escape, or an exact position typed in — all of them work
-  without the 3D view. A move through a wall is refused and the piece stays.
+  without the 3D view. A move through a wall is refused and the piece stays. Escape, a cancelled
+  pointer or leaving the window cancels a drag and restores camera controls.
 - **Finishes and light** — five floors, four wall colours and six furniture
   finishes, each with its own roughness and sheen; morning, day, evening and
   night light; lamps from the catalogue glow and light the room around them.

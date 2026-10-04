@@ -160,7 +160,7 @@ export function cameraPreset(room: Room, view: CameraView, fov = 50, aspect = 1.
   if (view === "plan") {
     return {
       view,
-      position: [box.centre.x, fit * 1.15 + room.height, box.centre.z + 0.001],
+      position: [box.centre.x, fit * 1.15 + room.height, box.centre.z],
       target,
       minDistance: span * 0.5,
       maxDistance: Math.max(span * 4, fit * 2),
@@ -176,4 +176,11 @@ export function cameraPreset(room: Room, view: CameraView, fov = 50, aspect = 1.
     maxDistance: Math.max(span * 4, distance * 2),
     maxPolarAngle: Math.PI / 2 - 0.05,
   };
+}
+
+/** Pixels per metre for an orthographic plan, including space for the wall labels. */
+export function planZoom(room: Room, width: number, height: number): number {
+  const box = bounds(room);
+  const margin = Math.max(1, Math.max(box.width, box.depth) * 0.16);
+  return Math.max(0.01, Math.min(width / (box.width + margin), height / (box.depth + margin)));
 }
