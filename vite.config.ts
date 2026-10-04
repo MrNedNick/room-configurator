@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.PAGES_BASE_PATH ?? '/',
   plugins: [react()],
   build: {
     // The lazily loaded 3D view is three.js plus its React bindings (~930 kB, ~250 kB gzipped). It

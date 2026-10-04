@@ -7,6 +7,9 @@ numbers — then download the floor plan as a drawing or keep the room as a file
 
 **React 19 · Three.js through React Three Fiber · TypeScript · Vite · Vitest**
 
+[Open the live room planner](https://mrnednick.github.io/room-configurator/).
+Rooms stay in your browser; download a room file to move one to another device.
+
 ## Why this stack
 
 A 3D scene is the part of front-end work most portfolios skip. React Three
@@ -70,6 +73,10 @@ npm run typecheck
 npm run lint      # oxlint
 npm run build
 ```
+
+GitHub Actions checks every change and publishes successful builds from `main`
+to GitHub Pages. Set `PAGES_BASE_PATH=/room-configurator/` when building locally
+to preview the same deployment path; development uses `/` by default.
 
 Walkthroughs with the rules and edge cases: [a room and the camera](docs/examples/01-room.md),
 [the furniture catalogue](docs/examples/02-catalog.md),
