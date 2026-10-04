@@ -3,7 +3,7 @@
 Draw a room from its corners, furnish it from a catalogue, choose floors, wall
 colours and finishes, set the light, and look at it in 3D or as a floor plan
 with every length written on it — moving pieces by dragging, keys or exact
-numbers. Next: saving and exporting the plan.
+numbers — then download the floor plan as a drawing or keep the room as a file.
 
 **React 19 · Three.js through React Three Fiber · TypeScript · Vite · Vitest**
 
@@ -45,6 +45,11 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   floor written on them. Pieces standing in each other turn amber and are
   named; gaps under 60 cm are pointed out as too narrow to walk through. All
   of it is also written in the panel, so it works without 3D.
+- **Floor plan and room files** — download the plan as an SVG drawing to
+  scale, with wall lengths, every piece by name, the floor area and a scale
+  bar; save the whole room to a JSON file and open it again. A file is
+  checked first and the reason is given if it can't be opened (walls that
+  cross are named); opening over a furnished room asks before replacing it.
 - **Kept between visits** — the room, its furniture, finishes and light are
   saved in the browser; rooms saved by earlier versions open with defaults.
   Saved data that no longer reads is not overwritten: the page says so and
@@ -70,7 +75,8 @@ Walkthroughs with the rules and edge cases: [a room and the camera](docs/example
 [the furniture catalogue](docs/examples/02-catalog.md),
 [moving and snapping](docs/examples/03-move.md),
 [finishes and light](docs/examples/04-finish.md),
-[dimensions and collisions](docs/examples/05-measure.md).
+[dimensions and collisions](docs/examples/05-measure.md),
+[saving, exporting and opening](docs/examples/06-export.md).
 
 ## Layout
 

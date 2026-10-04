@@ -11,7 +11,7 @@ import {
   type CatalogError,
   type Item,
 } from "../../domain/02-catalog";
-import { loadScene, saveScene, SCENE_VERSION, setAsideScene } from "../../adapters/scene-store";
+import { loadScene, saveScene, SCENE_VERSION, setAsideScene, type StoredScene } from "../../adapters/scene-store";
 import { DEFAULT_SNAP, moveItem, nudge, NO_SNAP, type MoveResult, type SnapSettings } from "../../domain/03-move";
 import type { Point } from "../../domain/01-room";
 import { DEFAULT_FINISH, DEFAULT_LIGHTING, setItemMaterial, setRoomFinish, type Finish, type FinishError, type Lighting } from "../../domain/04-finish";
@@ -51,6 +51,7 @@ type FurnishingAction =
   | { type: "material"; id: string; materialId: string | null }
   | { type: "remove"; id: string }
   | { type: "select"; id: string | null }
+  | { type: "load"; items: Item[] }
   | { type: "reset" };
 
 /**
@@ -103,6 +104,8 @@ function furnish(state: Furnishing, action: FurnishingAction): Furnishing {
       return { items: state.items.filter((item) => item.id !== action.id), selected: state.selected === action.id ? null : state.selected, error: null, errorAction: null, snapped: null };
     case "select":
       return { ...state, selected: action.id };
+    case "load":
+      return { items: action.items, selected: null, error: null, errorAction: null, snapped: null, finishError: null };
     case "reset":
       return { items: [], selected: null, error: null, errorAction: null, snapped: null };
   }
@@ -212,6 +215,14 @@ export function useRoom() {
       dispatch({ type: "material", id, materialId });
     },
     setLighting,
+    /** Everything at once, from a room file: the room, its furniture, finishes and light. */
+    replaceScene(scene: StoredScene) {
+      dispatch({ type: "load", items: scene.items });
+      setFinish(scene.finish);
+      setLighting(scene.lighting);
+      setRoomFinishError(null);
+      setDraft(scene.room);
+    },
     dimensionsOn,
     setDimensionsOn(on: boolean) {
       setDimensionsOn(on);

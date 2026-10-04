@@ -441,3 +441,23 @@ input {
 .measures p {
   margin: 0;
 }
+
+.export {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+.export h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.export .presets {
+  flex-wrap: wrap;
+}

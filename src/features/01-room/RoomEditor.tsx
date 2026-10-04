@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Point, Room, RoomError } from "../../domain/01-room";
 import { floorArea, walls } from "../../domain/01-room";
 import { describeRoomError, formatMetres } from "./messages";
@@ -9,10 +10,12 @@ interface Props {
   error: RoomError | null;
   onChange: (room: Room) => void;
   onPreset: (name: keyof typeof PRESETS) => void;
+  /** Saving and exporting the room, under the form. */
+  footer?: ReactNode;
 }
 
 /** Corners as number fields; a bad value shows the reason and leaves the last good room on screen. */
-export function RoomEditor({ draft, room, error, onChange, onPreset }: Props) {
+export function RoomEditor({ draft, room, error, onChange, onPreset, footer }: Props) {
   const setCorner = (index: number, patch: Partial<Point>) =>
     onChange({ ...draft, corners: draft.corners.map((p, i) => (i === index ? { ...p, ...patch } : p)) });
   const addCorner = () => {
@@ -108,6 +111,7 @@ export function RoomEditor({ draft, room, error, onChange, onPreset }: Props) {
           {formatMetres(floorArea(room))}² floor · {walls(room).length} walls · {formatMetres(room.height)} ceiling
         </p>
       )}
+      {footer}
     </section>
   );
 }

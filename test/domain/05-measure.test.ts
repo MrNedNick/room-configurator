@@ -26,6 +26,17 @@ describe("wall labels", () => {
     // The inner wall from (3,5) to (3,2) is labelled on the open side, at x > 3.
     expect(labels[2]!.at.x).toBeCloseTo(3.3);
   });
+
+  it("labels the inner walls of an L outside the floor, whichever way the corners run", () => {
+    // The studio preset: the notch is the square x 3–7, z 3–6.
+    const studio = valid({ name: "Studio", height: 2.7, corners: [{ x: 0, z: 0 }, { x: 7, z: 0 }, { x: 7, z: 3 }, { x: 3, z: 3 }, { x: 3, z: 6 }, { x: 0, z: 6 }] });
+    const labels = wallLabels(studio);
+    expect(labels[2]!.at).toEqual({ x: 5, z: 3.3 }); // wall (7,3)→(3,3): label below it, in the notch
+    expect(labels[3]!.at).toEqual({ x: 3.3, z: 4.5 }); // wall (3,3)→(3,6): label to its right
+    expect(labels[0]!.at).toEqual({ x: 3.5, z: -0.3 });
+    const reversed = valid({ ...studio, corners: [...studio.corners].reverse() });
+    expect(wallLabels(reversed).map((label) => label.at)).toEqual(expect.arrayContaining([{ x: 5, z: 3.3 }, { x: 3.3, z: 4.5 }]));
+  });
 });
 
 describe("clearances", () => {

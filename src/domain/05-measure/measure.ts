@@ -1,4 +1,4 @@
-import { bounds, walls, type Point, type Room } from "../01-room";
+import { walls, type Point, type Room } from "../01-room";
 import { footprint, footprintsOverlap, type CatalogEntry, type Footprint, type Item } from "../02-catalog";
 import { err, ok, type Result } from "../result";
 import { measureError, type MeasureError } from "./errors";
@@ -6,18 +6,23 @@ import { MIN_PASSAGE, TOUCHING, type Clearance, type Collision, type Passage, ty
 
 const round = (value: number) => Math.round(value * 1000) / 1000;
 
-/** Each wall's length, labelled 30 cm outside its middle so the label never sits on the floor plan. */
+/**
+ * Each wall's length, labelled 30 cm outside its middle so the label never sits on the floor. "Outside"
+ * comes from the direction the corners run, not from the room's centre — in an L the centre of the
+ * bounding box is not on the floor, and the inner walls would be labelled on the furniture.
+ */
 export function wallLabels(room: Room): WallLabel[] {
-  const centre = bounds(room).centre;
+  let twice = 0;
+  room.corners.forEach((p, i) => {
+    const q = room.corners[(i + 1) % room.corners.length]!;
+    twice += p.x * q.z - q.x * p.z;
+  });
+  // With x right and z as the second axis, a positive sum means the floor lies to the left of each wall.
+  const outward = twice > 0 ? 1 : -1;
   return walls(room).map((wall) => {
     const middle = { x: (wall.from.x + wall.to.x) / 2, z: (wall.from.z + wall.to.z) / 2 };
-    // A normal to the wall; flipped if it points towards the room's centre.
-    let nx = -(wall.to.z - wall.from.z) / (wall.length || 1);
-    let nz = (wall.to.x - wall.from.x) / (wall.length || 1);
-    if ((centre.x - middle.x) * nx + (centre.z - middle.z) * nz > 0) {
-      nx = -nx;
-      nz = -nz;
-    }
+    const nx = ((wall.to.z - wall.from.z) / (wall.length || 1)) * outward;
+    const nz = (-(wall.to.x - wall.from.x) / (wall.length || 1)) * outward;
     return { wall: wall.index, length: round(wall.length), at: { x: round(middle.x + nx * 0.3), z: round(middle.z + nz * 0.3) } };
   });
 }

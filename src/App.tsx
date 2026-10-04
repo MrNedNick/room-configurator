@@ -8,6 +8,8 @@ import { lightRig } from "./domain/04-finish";
 import { FinishPanel } from "./features/04-finish";
 import { clearances, collisions, narrowPassages, wallLabels } from "./domain/05-measure";
 import { MeasureSummary } from "./features/05-measure";
+import { ExportPanel } from "./features/06-export";
+import { SCENE_VERSION } from "./adapters/scene-store";
 
 // Three.js is most of the download; the editor is usable while it arrives.
 const RoomView = lazy(() => import("./features/01-room/RoomView").then((module) => ({ default: module.RoomView })));
@@ -85,6 +87,13 @@ export default function App() {
           error={state.error}
           onChange={state.setDraft}
           onPreset={state.usePreset}
+          footer={
+            <ExportPanel
+              scene={{ version: SCENE_VERSION, room: state.room, items: state.items, finish: state.finish, lighting: state.lighting }}
+              draftInvalid={state.error !== null}
+              onReplace={state.replaceScene}
+            />
+          }
         />
         <CatalogPanel
           items={state.items}

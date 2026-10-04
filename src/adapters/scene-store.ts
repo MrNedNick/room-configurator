@@ -1,6 +1,7 @@
 import { validateRoom, type Room } from "../domain/01-room";
 import { normaliseRotation, type Item } from "../domain/02-catalog";
 import { DEFAULT_FINISH, DEFAULT_LIGHTING, readFinish, readLighting, type Finish, type Lighting } from "../domain/04-finish";
+import { exportError, type ExportError } from "../domain/06-export";
 import { err, ok, type Result } from "../domain/result";
 
 const KEY = "room-configurator:scene";
@@ -31,10 +32,49 @@ function readItems(raw: unknown): Item[] {
 }
 
 /**
- * Reads the saved scene. Nothing saved → `null`. A version 1 scene (a room, no furniture yet) is read as
- * an empty room; versions 1 and 2 (before finishes) get the default floor, walls and daylight. A finish
- * the palette no longer has falls back to the default — it is decoration, not the user's layout. Anything that no longer reads → an error that keeps the raw text, so the page can say
- * so and offer to start over instead of silently replacing the user's work.
+ * Reads a scene from its JSON text — the saved one or a file the user opens — and says exactly what is
+ * wrong when it can't: not JSON, not a scene, made by a newer version, a room whose walls cross, or
+ * broken furniture. Versions 1 (a room, no furniture yet) and 2 (before finishes) are read with the
+ * default floor, walls and daylight. A finish the palette no longer has falls back to the default — it
+ * is decoration, not the user's layout.
+ */
+export function parseScene(raw: string): Result<StoredScene, ExportError> {
+  let data: { version?: unknown; room?: Room; items?: unknown; finish?: unknown; lighting?: unknown };
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return err(exportError("not-json"));
+  }
+  if (!data || typeof data !== "object" || !data.room || typeof data.version !== "number") return err(exportError("not-a-scene"));
+  if (data.version > SCENE_VERSION) return err(exportError("newer-version"));
+  if (![1, 2, SCENE_VERSION].includes(data.version)) return err(exportError("not-a-scene"));
+  const room = validateRoom(data.room);
+  if (!room.ok) return err(exportError("room-invalid", { room: room.error.reason, ...(room.error.walls ? { walls: room.error.walls } : {}) }));
+  let items: Item[];
+  try {
+    items = data.version === 1 ? [] : readItems(data.items);
+  } catch {
+    return err(exportError("items-invalid"));
+  }
+  const finish = readFinish(data.finish);
+  const lighting = readLighting(data.lighting);
+  return ok({
+    version: SCENE_VERSION,
+    room: room.value,
+    items,
+    finish: finish.ok ? finish.value : DEFAULT_FINISH,
+    lighting: lighting.ok ? lighting.value : DEFAULT_LIGHTING,
+  });
+}
+
+/** The scene as a file: readable JSON that `parseScene` reads back exactly. */
+export function sceneJson(scene: StoredScene): string {
+  return `${JSON.stringify(scene, null, 2)}\n`;
+}
+
+/**
+ * Reads the saved scene. Nothing saved → `null`. Anything that no longer reads → an error that keeps the
+ * raw text, so the page can say so and offer to start over instead of silently replacing the user's work.
  */
 export function loadScene(storage: Pick<Storage, "getItem"> = localStorage): Result<StoredScene | null, LoadError> {
   let raw: string | null;
@@ -44,23 +84,8 @@ export function loadScene(storage: Pick<Storage, "getItem"> = localStorage): Res
     return ok(null);
   }
   if (raw === null) return ok(null);
-  try {
-    const data = JSON.parse(raw) as { version?: number; room?: Room; items?: unknown; finish?: unknown; lighting?: unknown };
-    if (![1, 2, SCENE_VERSION].includes(data.version ?? 0) || !data.room) throw new Error("not a scene");
-    const room = validateRoom(data.room);
-    if (!room.ok) throw new Error(room.error.reason);
-    const finish = readFinish(data.finish);
-    const lighting = readLighting(data.lighting);
-    return ok({
-      version: SCENE_VERSION,
-      room: room.value,
-      items: data.version === 1 ? [] : readItems(data.items),
-      finish: finish.ok ? finish.value : DEFAULT_FINISH,
-      lighting: lighting.ok ? lighting.value : DEFAULT_LIGHTING,
-    });
-  } catch {
-    return err({ kind: "unreadable", raw });
-  }
+  const scene = parseScene(raw);
+  return scene.ok ? ok(scene.value) : err({ kind: "unreadable", raw });
 }
 
 export function saveScene(scene: StoredScene, storage: Pick<Storage, "setItem"> = localStorage): boolean {
