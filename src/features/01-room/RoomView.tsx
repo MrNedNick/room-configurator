@@ -2,7 +2,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Grid, OrbitControls } from "@react-three/drei";
 import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { cameraPreset, crossingWalls, walls, type CameraView, type Room } from "../../domain/01-room";
+import { bounds, cameraPreset, crossingWalls, walls, type CameraView, type Room } from "../../domain/01-room";
 import type { Item } from "../../domain/02-catalog";
 import type { Point } from "../../domain/01-room";
 import type { SnapSettings } from "../../domain/03-move";
@@ -164,7 +164,7 @@ export function RoomView({ room, draft, view, items, selected, outside, snap, fi
         onSelect={onSelect}
         onMove={onMove}
       />
-      <Dimensions labels={labels} clearances={clearances} />
+      <Dimensions labels={labels} clearances={clearances} roomSize={Math.max(bounds(room).width, bounds(room).depth)} />
       <CameraRig room={room} view={view} onContextLost={() => setContextLost(true)} />
     </Canvas>
   );
