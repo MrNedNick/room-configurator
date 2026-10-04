@@ -27,7 +27,7 @@ export function RoomEditor({ draft, room, error, onChange, onPreset, footer }: P
   const number = (value: string) => (value.trim() === "" ? Number.NaN : Number(value));
 
   return (
-    <section className="panel" aria-labelledby="room-title">
+    <section className="panel room-editor" aria-labelledby="room-title" tabIndex={0}>
       <h2 id="room-title">Room</h2>
       <div className="presets" role="group" aria-label="Start from">
         <button type="button" onClick={() => onPreset("rectangle")}>Rectangle</button>

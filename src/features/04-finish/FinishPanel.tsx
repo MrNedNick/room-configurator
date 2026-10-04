@@ -53,7 +53,7 @@ function Swatches({ label, surface, value, onPick, extra }: { label: string; sur
 export function FinishPanel({ finish, lighting, rig, selected, error, onFinish, onItemMaterial, onLighting }: Props) {
   const entry = selected ? FURNITURE.find((candidate) => candidate.id === selected.catalogId) : undefined;
   return (
-    <section className="panel finish" aria-labelledby="finish-title">
+    <section className="panel finish" aria-labelledby="finish-title" tabIndex={0}>
       <h2 id="finish-title">Finish & light</h2>
       <Swatches label="Floor" surface="floor" value={finish.floor} onPick={(id) => onFinish("floor", id)} />
       <Swatches label="Walls" surface="wall" value={finish.walls} onPick={(id) => onFinish("walls", id)} />

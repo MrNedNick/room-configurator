@@ -30,7 +30,7 @@ export function CatalogPanel({ items, selected, outside, error, errorAction = nu
   const errorName = error?.id ? (FURNITURE.find((e) => e.id === error.id)?.name ?? items.find((i) => i.id === error.id)?.name) : undefined;
 
   return (
-    <section className="panel catalog" aria-labelledby="catalog-title">
+    <section className="panel catalog" aria-labelledby="catalog-title" tabIndex={0}>
       <h2 id="catalog-title">Furniture</h2>
 
       <details className="catalogue" open>

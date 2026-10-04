@@ -17,6 +17,7 @@ const RoomView = lazy(() => import("./features/01-room/RoomView").then((module) 
 export default function App() {
   const state = useRoom();
   const [view, setView] = useState<CameraView>("perspective");
+  const [panel, setPanel] = useState("room");
   const canRender = useMemo(() => webglAvailable(), []);
   const measured = useMemo(() => {
     const around = state.selected ? clearances(state.room, state.items, FURNITURE, state.selected) : null;
@@ -55,7 +56,7 @@ export default function App() {
   }, [state]);
 
   return (
-    <div className="app">
+    <div className="app" data-panel={panel}>
       <header className="topbar">
         <h1>Room configurator</h1>
         <div className="views" role="group" aria-label="Camera">
@@ -70,6 +71,12 @@ export default function App() {
           Dimensions
         </button>
       </header>
+
+      <nav className="panel-nav" aria-label="Settings panels">
+        {[["room", "Room"], ["furniture", "Furniture"], ["finish", "Finish & light"]].map(([id, label]) => (
+          <button key={id} type="button" aria-pressed={panel === id} onClick={() => setPanel(id!)}>{label}</button>
+        ))}
+      </nav>
 
       {state.unreadable !== null && (
         <div className="notice" role="alert">

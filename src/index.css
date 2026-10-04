@@ -30,6 +30,13 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -75,7 +82,9 @@ input {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .topbar {
@@ -83,6 +92,8 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  flex: none;
+  flex-wrap: wrap;
   padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--border);
 }
@@ -99,6 +110,15 @@ input {
   gap: 0.35rem;
 }
 
+.panel-nav {
+  display: none;
+  flex: none;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
 .notice {
   margin: 0.75rem 1rem 0;
   padding: 0.6rem 0.9rem;
@@ -111,20 +131,22 @@ input {
 }
 
 .layout {
-  flex: 1;
+  flex: 1 1 0;
   display: grid;
-  grid-template-columns: minmax(250px, 300px) minmax(250px, 300px) 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(250px, 290px) minmax(280px, 320px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr);
   min-height: 0;
+  overflow: hidden;
 }
 
 /* Wide screens: the room form on the left, furniture over finishes in the middle, the view on the right. */
-.layout > .panel:first-child {
+.room-editor {
   grid-row: 1 / span 2;
 }
 
 .finish {
   grid-column: 2;
+  grid-row: 2;
   border-top: 1px solid var(--border);
 }
 
@@ -251,6 +273,15 @@ input {
   flex-direction: column;
   gap: 0.7rem;
   overflow-y: auto;
+  min-height: 0;
+  min-width: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-padding: 1rem;
+}
+
+.panel > * {
+  flex-shrink: 0;
 }
 
 .panel h2 {
@@ -307,14 +338,11 @@ input {
   color: var(--muted);
 }
 
-/* The view stays on screen while the panels beside it scroll: it is as tall as the window, not as tall
-   as the panels, so the room is never drawn below the fold. */
 .view {
-  position: sticky;
-  top: 0;
-  align-self: start;
-  height: calc(100vh - 3.3rem);
-  min-height: 420px;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   background: var(--view-bg);
 }
 
@@ -350,49 +378,82 @@ input {
 }
 
 @media (max-width: 1100px) {
-  .layout {
-    grid-template-columns: minmax(250px, 320px) 1fr;
+  .panel-nav {
+    display: flex;
   }
 
   .layout {
-    grid-template-rows: auto auto 1fr;
+    grid-template-columns: minmax(280px, 320px) 1fr;
   }
 
-  .layout > .panel:first-child {
-    grid-row: auto;
+  .layout {
+    grid-template-rows: minmax(0, 1fr);
   }
 
+  .app[data-panel="room"] .catalog,
+  .app[data-panel="room"] .finish,
+  .app[data-panel="furniture"] .room-editor,
+  .app[data-panel="furniture"] .finish,
+  .app[data-panel="finish"] .room-editor,
+  .app[data-panel="finish"] .catalog {
+    display: none;
+  }
+
+  .room-editor,
   .catalog,
   .finish {
     grid-column: 1;
+    grid-row: 1;
   }
 
   .view {
     grid-column: 2;
-    grid-row: 1 / span 3;
+    grid-row: 1;
   }
 }
 
 @media (max-width: 760px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 0.85fr) minmax(0, 1fr);
   }
 
+  .room-editor,
   .catalog,
-  .finish,
+  .finish {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
   .view {
     grid-column: 1;
-    grid-row: auto;
-  }
-
-  .view {
-    position: relative;
-    height: 60vh;
+    grid-row: 1;
   }
 
   .panel {
     border-right: 0;
     border-bottom: 1px solid var(--border);
+  }
+
+  .topbar {
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .topbar h1 {
+    font-size: 0.95rem;
+    flex: 1 1 100%;
+  }
+
+  .panel-nav {
+    padding: 0.4rem 0.75rem;
+  }
+
+  .panel-nav button {
+    flex: 1;
+    padding-inline: 0.4rem;
+    min-height: 40px;
+    font-size: 0.85rem;
   }
 
 }

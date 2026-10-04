@@ -29,6 +29,9 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   over 50 m and ceilings outside 2–6 m.
 - **3D and plan views** — the camera is fitted to the room; orbiting is
   limited so the room can't be lost, and the plan view looks straight down.
+- **A workspace that fits the window** — the scene stays visible while the room,
+  furniture and finish panels scroll independently. On smaller screens, switch
+  between settings panels while keeping the scene on screen.
 - **Furniture from a catalogue** — ten real-sized pieces; each new one goes to
   the nearest free spot on the floor, clear of the others. Turn pieces a
   quarter at a time (refused where the turn would hit a wall) or remove
@@ -72,6 +75,8 @@ npm test          # domain, storage and UI tests (Vitest, jsdom)
 npm run typecheck
 npm run lint      # oxlint
 npm run build
+npx playwright install chromium
+npm run test:e2e  # run after a Pages build: six desktop, tablet and mobile layouts
 ```
 
 GitHub Actions checks every change and publishes successful builds from `main`
