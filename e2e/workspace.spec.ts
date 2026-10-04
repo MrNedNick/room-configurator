@@ -32,8 +32,11 @@ test("only settings scroll, while the scene and header stay inside the viewport"
   expect(await page.evaluate(() => ({
     top: scrollY,
     horizontal: document.documentElement.scrollWidth > innerWidth,
-    vertical: document.documentElement.scrollHeight > innerHeight,
+    vertical: document.documentElement.scrollHeight > innerHeight + 1,
   }))).toEqual({ top: 0, horizontal: false, vertical: false });
+  await page.locator(".topbar").hover();
+  await page.mouse.wheel(0, 900);
+  expect(await page.evaluate(() => scrollY)).toBe(0);
   const viewport = page.viewportSize()!;
   expect(before!.y + before!.height).toBeLessThanOrEqual(viewport.height + 1);
   expect(before!.height).toBeGreaterThan(70);
