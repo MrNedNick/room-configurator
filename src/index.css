@@ -112,7 +112,57 @@ input {
   flex: 1;
   display: grid;
   grid-template-columns: minmax(250px, 300px) minmax(250px, 300px) 1fr;
+  grid-template-rows: auto 1fr;
   min-height: 0;
+}
+
+/* Wide screens: the room form on the left, furniture over finishes in the middle, the view on the right. */
+.layout > .panel:first-child {
+  grid-row: 1 / span 2;
+}
+
+.finish {
+  grid-column: 2;
+  border-top: 1px solid var(--border);
+}
+
+.view {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+.swatches {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.swatches legend {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.swatches [role="radiogroup"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.swatches [role="radio"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.swatches [role="radio"][aria-checked="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .catalog h3 {
@@ -302,13 +352,22 @@ input {
     grid-template-columns: minmax(250px, 320px) 1fr;
   }
 
-  .catalog {
+  .layout {
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .layout > .panel:first-child {
+    grid-row: auto;
+  }
+
+  .catalog,
+  .finish {
     grid-column: 1;
   }
 
   .view {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 3;
   }
 }
 
@@ -318,6 +377,7 @@ input {
   }
 
   .catalog,
+  .finish,
   .view {
     grid-column: 1;
     grid-row: auto;

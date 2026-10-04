@@ -14,6 +14,7 @@ import {
 import { loadScene, saveScene, SCENE_VERSION, setAsideScene } from "../../adapters/scene-store";
 import { DEFAULT_SNAP, moveItem, nudge, NO_SNAP, type MoveResult, type SnapSettings } from "../../domain/03-move";
 import type { Point } from "../../domain/01-room";
+import { DEFAULT_FINISH, DEFAULT_LIGHTING, setItemMaterial, setRoomFinish, type Finish, type FinishError, type Lighting } from "../../domain/04-finish";
 
 export const PRESETS: Record<"rectangle" | "l-shape", Room> = {
   rectangle: { name: "Living room", height: 2.7, corners: [{ x: 0, z: 0 }, { x: 5, z: 0 }, { x: 5, z: 4 }, { x: 0, z: 4 }] },
@@ -37,6 +38,8 @@ interface Furnishing {
   errorAction: "add" | "turn" | "move" | null;
   /** What the last move snapped to, for the status line. */
   snapped: MoveResult["snapped"];
+  /** A finish that couldn't be applied to the selected piece. */
+  finishError?: FinishError | null;
 }
 
 type FurnishingAction =
@@ -44,6 +47,7 @@ type FurnishingAction =
   | { type: "rotate"; room: Room; id: string }
   | { type: "move"; room: Room; id: string; target: Point; settings: SnapSettings }
   | { type: "nudge"; room: Room; id: string; dx: number; dz: number }
+  | { type: "material"; id: string; materialId: string | null }
   | { type: "remove"; id: string }
   | { type: "select"; id: string | null }
   | { type: "reset" };
@@ -89,6 +93,11 @@ function furnish(state: Furnishing, action: FurnishingAction): Furnishing {
       if (!stepped.ok) return { ...state, error: stepped.error, errorAction: "move", snapped: null };
       return { ...state, items: state.items.map((i) => (i.id === item.id ? stepped.value : i)), error: null, errorAction: null, snapped: null };
     }
+    case "material": {
+      const changed = setItemMaterial(state.items, action.id, action.materialId);
+      if (!changed.ok) return { ...state, finishError: changed.error };
+      return { ...state, items: changed.value, finishError: null };
+    }
     case "remove":
       return { items: state.items.filter((item) => item.id !== action.id), selected: state.selected === action.id ? null : state.selected, error: null, errorAction: null, snapped: null };
     case "select":
@@ -111,6 +120,9 @@ export function useRoom() {
   const [room, setRoom] = useState<Room>(start?.room ?? PRESETS.rectangle);
   const [furnishing, dispatch] = useReducer(furnish, { items: start?.items ?? [], selected: null, error: null, errorAction: null, snapped: null });
   const { items, selected, error: itemError, errorAction, snapped } = furnishing;
+  const [finish, setFinish] = useState<Finish>(start?.finish ?? DEFAULT_FINISH);
+  const [lighting, setLighting] = useState<Lighting>(start?.lighting ?? DEFAULT_LIGHTING);
+  const [roomFinishError, setRoomFinishError] = useState<FinishError | null>(null);
   const [snapOn, setSnapOn] = useState(() => {
     try {
       return localStorage.getItem(SNAP_KEY) !== "off";
@@ -130,8 +142,8 @@ export function useRoom() {
 
   // Saving is the one outside system to keep in step; nothing is written over data that didn't read.
   useEffect(() => {
-    if (unreadable === null) saveScene({ version: SCENE_VERSION, room, items });
-  }, [room, items, unreadable]);
+    if (unreadable === null) saveScene({ version: SCENE_VERSION, room, items, finish, lighting });
+  }, [room, items, finish, lighting, unreadable]);
 
   return {
     draft,
@@ -177,10 +189,27 @@ export function useRoom() {
     nudgeItem(id: string, dx: number, dz: number) {
       dispatch({ type: "nudge", room, id, dx, dz });
     },
+    finish,
+    lighting,
+    finishError: roomFinishError ?? furnishing.finishError ?? null,
+    setRoomFinish(part: keyof Finish, materialId: string) {
+      // Whether a material fits a surface doesn't depend on the current finish, so it is checked up front;
+      // the change itself works on the latest finish, so a floor and a wall picked in quick succession both stick.
+      const check = setRoomFinish(DEFAULT_FINISH, part, materialId);
+      setRoomFinishError(check.ok ? null : check.error);
+      if (check.ok) setFinish((current) => ({ ...current, [part]: materialId }));
+    },
+    setItemMaterial(id: string, materialId: string | null) {
+      setRoomFinishError(null);
+      dispatch({ type: "material", id, materialId });
+    },
+    setLighting,
     startOver() {
       if (unreadable !== null) setAsideScene(unreadable);
       setUnreadable(null);
       dispatch({ type: "reset" });
+      setFinish(DEFAULT_FINISH);
+      setLighting(DEFAULT_LIGHTING);
       setDraft(PRESETS.rectangle);
     },
   };

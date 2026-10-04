@@ -30,6 +30,8 @@ export interface Item {
   catalogId: string;
   name: string;
   transform: Transform;
+  /** A finish from the materials palette; without one the piece shows its catalogue colour. */
+  materialId?: string;
 }
 
 /** The floor outline an item covers: four corners for a box, a sampled circle for a cylinder. */

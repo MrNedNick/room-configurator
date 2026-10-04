@@ -7,10 +7,18 @@ import type { Item } from "../../domain/02-catalog";
 import type { Point } from "../../domain/01-room";
 import type { SnapSettings } from "../../domain/03-move";
 import { ItemsLayer } from "../02-catalog/ItemsLayer";
+import { findMaterial, type Finish, type LightRig, type Material } from "../../domain/04-finish";
+
+const FALLBACK: Pick<Material, "colour" | "roughness" | "metalness"> = { colour: "#d9cbb4", roughness: 0.8, metalness: 0 };
+const look = (id: string, surface: "floor" | "wall") => {
+  const found = findMaterial(id, surface);
+  return found.ok ? found.value : FALLBACK;
+};
 
 const WALL_THICKNESS = 0.12;
 
-function Floor({ room }: { room: Room }) {
+function Floor({ room, material }: { room: Room; material: string }) {
+  const finish = look(material, "floor");
   const shape = useMemo(() => {
     const s = new THREE.Shape();
     room.corners.forEach((p, i) => (i === 0 ? s.moveTo(p.x, p.z) : s.lineTo(p.x, p.z)));
@@ -21,12 +29,13 @@ function Floor({ room }: { room: Room }) {
   return (
     <mesh rotation={[Math.PI / 2, 0, 0]} receiveShadow>
       <shapeGeometry args={[shape]} />
-      <meshStandardMaterial color="#d9cbb4" side={THREE.DoubleSide} />
+      <meshStandardMaterial color={finish.colour} roughness={finish.roughness} metalness={finish.metalness} side={THREE.DoubleSide} />
     </mesh>
   );
 }
 
-function Walls({ room, highlight }: { room: Room; highlight: number[] }) {
+function Walls({ room, highlight, material }: { room: Room; highlight: number[]; material: string }) {
+  const finish = look(material, "wall");
   return (
     <>
       {walls(room).map((wall) => {
@@ -39,7 +48,8 @@ function Walls({ room, highlight }: { room: Room; highlight: number[] }) {
             rotation={[0, -angle, 0]}
           >
             <boxGeometry args={[wall.length + WALL_THICKNESS, room.height, WALL_THICKNESS]} />
-            <meshStandardMaterial color={bad ? "#d23c3c" : "#f1efe9"} transparent opacity={bad ? 0.9 : 0.55} />
+            {/* Walls stay see-through so the room can be looked into from any side. */}
+            <meshStandardMaterial color={bad ? "#d23c3c" : finish.colour} roughness={finish.roughness} transparent opacity={bad ? 0.9 : 0.6} />
           </mesh>
         );
       })}
@@ -89,11 +99,13 @@ interface Props {
   selected: string | null;
   outside: string[];
   snap: SnapSettings;
+  finish: Finish;
+  rig: LightRig;
   onSelect: (id: string | null) => void;
   onMove: (id: string, target: Point) => void;
 }
 
-export function RoomView({ room, draft, view, items, selected, outside, snap, onSelect, onMove }: Props) {
+export function RoomView({ room, draft, view, items, selected, outside, snap, finish, rig, onSelect, onMove }: Props) {
   const [contextLost, setContextLost] = useState(false);
   const [generation, setGeneration] = useState(0);
   const crossing = crossingWalls(draft);
@@ -120,18 +132,31 @@ export function RoomView({ room, draft, view, items, selected, outside, snap, on
   return (
     <Canvas
       key={generation}
-      shadows
+      shadows={rig.shadows}
       camera={{ fov: 50, near: 0.05, far: 500 }}
       aria-label="3D view of the room"
       onPointerMissed={() => onSelect(null)}
     >
-      <color attach="background" args={["#1d2027"]} />
-      <hemisphereLight args={["#ffffff", "#5a5048", 0.9]} />
-      <directionalLight position={[6, 10, 4]} intensity={1.4} castShadow />
+      <color attach="background" args={[rig.background]} />
+      <hemisphereLight args={[rig.ambient.colour, "#5a5048", rig.ambient.intensity]} />
+      <directionalLight position={rig.sun.position} color={rig.sun.colour} intensity={rig.sun.intensity} castShadow={rig.shadows} />
+      {rig.lamps.map((lamp) => (
+        // Lamps light a few metres around them and fade with distance, like a real shade.
+        <pointLight key={lamp.itemId} position={lamp.position} color={lamp.colour} intensity={lamp.intensity} distance={6} decay={1.5} />
+      ))}
       <Grid position={[0, -0.001, 0]} args={[60, 60]} cellSize={0.5} sectionSize={1} infiniteGrid fadeDistance={40} />
-      <Floor room={shown} />
-      <Walls room={shown} highlight={crossing ?? []} />
-      <ItemsLayer room={room} items={items} selected={selected} outside={outside} snap={snap} onSelect={onSelect} onMove={onMove} />
+      <Floor room={shown} material={finish.floor} />
+      <Walls room={shown} highlight={crossing ?? []} material={finish.walls} />
+      <ItemsLayer
+        room={room}
+        items={items}
+        selected={selected}
+        outside={outside}
+        snap={snap}
+        glowing={[...rig.lamps.map((lamp) => lamp.itemId), ...rig.glowingOnly]}
+        onSelect={onSelect}
+        onMove={onMove}
+      />
       <CameraRig room={room} view={view} onContextLost={() => setContextLost(true)} />
     </Canvas>
   );

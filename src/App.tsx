@@ -3,6 +3,9 @@ import { FINE_NUDGE, NUDGE } from "./domain/03-move";
 import type { CameraView } from "./domain/01-room";
 import { RoomEditor, useRoom, webglAvailable } from "./features/01-room";
 import { CatalogPanel } from "./features/02-catalog";
+import { FURNITURE } from "./domain/02-catalog";
+import { lightRig } from "./domain/04-finish";
+import { FinishPanel } from "./features/04-finish";
 
 // Three.js is most of the download; the editor is usable while it arrives.
 const RoomView = lazy(() => import("./features/01-room/RoomView").then((module) => ({ default: module.RoomView })));
@@ -11,6 +14,7 @@ export default function App() {
   const state = useRoom();
   const [view, setView] = useState<CameraView>("perspective");
   const canRender = useMemo(() => webglAvailable(), []);
+  const rig = useMemo(() => lightRig(state.room, state.items, state.lighting, FURNITURE), [state.room, state.items, state.lighting]);
 
   // Keyboard moves work with or without the 3D view: arrows step the selected piece (Shift for 1 cm),
   // R turns it, Delete removes it, Escape lets go. Typing in a field is left alone.
@@ -83,6 +87,16 @@ export default function App() {
           onRotate={state.rotateItem}
           onRemove={state.removeItem}
         />
+        <FinishPanel
+          finish={state.finish}
+          lighting={state.lighting}
+          rig={rig}
+          selected={state.items.find((item) => item.id === state.selected) ?? null}
+          error={state.finishError}
+          onFinish={state.setRoomFinish}
+          onItemMaterial={state.setItemMaterial}
+          onLighting={state.setLighting}
+        />
         <div className="view" data-testid="view">
           {canRender ? (
             <Suspense fallback={<div className="view-fallback" role="status"><p>Loading the 3D view…</p></div>}>
@@ -94,6 +108,8 @@ export default function App() {
                 selected={state.selected}
                 outside={state.outside}
                 snap={state.snap}
+                finish={state.finish}
+                rig={rig}
                 onSelect={state.select}
                 onMove={(id, target) => state.moveItem(id, target)}
               />
