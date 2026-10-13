@@ -11,11 +11,14 @@ async function imageDifference(page: Page, first: Buffer, last: Buffer) {
       const image = new Image();
       image.src = `data:image/png;base64,${encoded}`;
       await image.decode();
+      // Compared at a small size: the question is whether the view moved, and a full-size
+      // diff of a large canvas is slow enough on CI runners to eat the whole poll timeout.
+      const scale = Math.min(1, 240 / image.width);
       const canvas = document.createElement("canvas");
-      canvas.width = image.width; canvas.height = image.height;
+      canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
       const context = canvas.getContext("2d")!;
-      context.drawImage(image, 0, 0);
-      return context.getImageData(0, 0, image.width, image.height).data;
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return context.getImageData(0, 0, canvas.width, canvas.height).data;
     };
     const [a, b] = await Promise.all([pixels(first), pixels(last)]);
     if (a.length !== b.length) return 1;
@@ -26,6 +29,9 @@ async function imageDifference(page: Page, first: Buffer, last: Buffer) {
     return changed / (a.length / 4);
   }, { first: first.toString("base64"), last: last.toString("base64") });
 }
+
+/** A software-rendered screenshot of the largest canvas takes seconds on a CI runner. */
+const VIEW_CHANGE = { timeout: 20_000 };
 
 test.beforeEach(async ({ page }) => {
   const errors: string[] = [];
@@ -43,6 +49,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test("zoom is preserved when renaming, and Reset view restores either projection", async ({ page }) => {
+  test.slow();
   await page.getByRole("button", { name: "Dimensions", exact: true }).click();
   for (const name of ["Plan", "3D"]) {
     await page.getByRole("button", { name, exact: true }).click();
@@ -52,16 +59,17 @@ test("zoom is preserved when renaming, and Reset view restores either projection
     const before = await canvas.screenshot();
     await canvas.hover();
     await page.mouse.wheel(0, -350);
-    await expect.poll(async () => imageDifference(page, before, await canvas.screenshot())).toBeGreaterThan(0.05);
+    await expect.poll(async () => imageDifference(page, before, await canvas.screenshot()), VIEW_CHANGE).toBeGreaterThan(0.05);
     await showPanel(page, "Room");
     await page.getByLabel("Name", { exact: true }).fill(`Camera ${name}`);
-    await expect.poll(async () => imageDifference(page, before, await canvas.screenshot())).toBeGreaterThan(0.05);
+    await expect.poll(async () => imageDifference(page, before, await canvas.screenshot()), VIEW_CHANGE).toBeGreaterThan(0.05);
     await page.getByRole("button", { name: "Reset view", exact: true }).click();
-    await expect.poll(async () => imageDifference(page, before, await canvas.screenshot())).toBeLessThan(0.02);
+    await expect.poll(async () => imageDifference(page, before, await canvas.screenshot()), VIEW_CHANGE).toBeLessThan(0.02);
   }
 });
 
 test("every drag cancellation keeps the piece and allows the next drag and camera zoom", async ({ page }) => {
+  test.slow();
   await showPanel(page, "Furniture");
   await page.getByRole("button", { name: "Add Three-seat sofa", exact: true }).click();
   const original = await position(page);
@@ -88,6 +96,6 @@ test("every drag cancellation keeps the piece and allows the next drag and camer
   const before = await canvas.screenshot();
   await canvas.hover();
   await page.mouse.wheel(0, -200);
-  await expect.poll(async () => imageDifference(page, before, await canvas.screenshot())).toBeGreaterThan(0.05);
+  await expect.poll(async () => imageDifference(page, before, await canvas.screenshot()), VIEW_CHANGE).toBeGreaterThan(0.05);
   expect(await page.evaluate(() => scrollY)).toBe(0);
 });
