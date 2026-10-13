@@ -56,10 +56,40 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [state]);
 
+  // ⌘/Ctrl+Z undoes a room or furniture change, ⇧⌘/Ctrl+Z or Ctrl+Y redoes it. In a text field the
+  // browser's own undo for that field wins.
+  const { undo, redo } = state;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target instanceof Element && target.closest("input, textarea, select")) return;
+      const key = event.key.toLowerCase();
+      if (key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+      } else if (key === "y") {
+        event.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
   return (
     <div className="app" data-panel={panel}>
       <header className="topbar">
         <h1>Room configurator</h1>
+        <div className="history" role="group" aria-label="History">
+          <button type="button" aria-label="Undo" disabled={!state.canUndo} onClick={state.undo} title="Undo (⌘/Ctrl+Z)">
+            <span aria-hidden="true">↶</span>
+          </button>
+          <button type="button" aria-label="Redo" disabled={!state.canRedo} onClick={state.redo} title="Redo (⇧⌘/Ctrl+Z)">
+            <span aria-hidden="true">↷</span>
+          </button>
+        </div>
         <div className="views" role="group" aria-label="Camera">
           <button type="button" aria-pressed={view === "perspective"} onClick={() => setView("perspective")}>
             3D

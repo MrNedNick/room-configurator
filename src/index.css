@@ -105,7 +105,8 @@ input {
   margin-right: auto;
 }
 
-.views {
+.views,
+.history {
   display: flex;
   gap: 0.35rem;
 }
@@ -443,9 +444,18 @@ input {
     padding: 0.5rem 0.75rem;
   }
 
+  /* Title and undo/redo share the first row; the camera controls take the second. */
   .topbar h1 {
     font-size: 0.95rem;
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+  }
+
+  .topbar .history {
+    flex: none;
+  }
+
+  .topbar .views {
+    flex-basis: auto;
   }
 
   .panel-nav {

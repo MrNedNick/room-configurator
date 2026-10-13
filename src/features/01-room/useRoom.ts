@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { validateRoom, type Room } from "../../domain/01-room";
 import {
   checkPlacement,
@@ -28,6 +28,14 @@ export const PRESETS: Record<"rectangle" | "l-shape", Room> = {
 const SNAP_KEY = "room-configurator:snap";
 const DIMENSIONS_KEY = "room-configurator:dimensions";
 
+interface Snapshot {
+  room: Room;
+  items: Item[];
+}
+
+const MERGE_WITHIN = 600;
+const HISTORY_LIMIT = 100;
+
 let counter = 0;
 const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `item-${Date.now()}-${counter++}`);
 
@@ -52,6 +60,7 @@ type FurnishingAction =
   | { type: "remove"; id: string }
   | { type: "select"; id: string | null }
   | { type: "load"; items: Item[] }
+  | { type: "restore"; items: Item[] }
   | { type: "reset" };
 
 /**
@@ -106,6 +115,17 @@ function furnish(state: Furnishing, action: FurnishingAction): Furnishing {
       return { ...state, selected: action.id };
     case "load":
       return { items: action.items, selected: null, error: null, errorAction: null, snapped: null, finishError: null };
+    case "restore":
+      // Undo/redo: the selection survives if the piece still exists, errors from the undone step don't.
+      return {
+        ...state,
+        items: action.items,
+        selected: action.items.some((item) => item.id === state.selected) ? state.selected : null,
+        error: null,
+        errorAction: null,
+        snapped: null,
+        finishError: null,
+      };
     case "reset":
       return { items: [], selected: null, error: null, errorAction: null, snapped: null };
   }
@@ -161,9 +181,53 @@ export function useRoom() {
     setSaveFailed(!saved);
   }, [room, items, finish, lighting, unreadable]);
 
+  // Undo and redo over the room and its furniture. Changes that follow each other quickly — a drag,
+  // digits typed into one field — become one step, so undo goes back to where the gesture started.
+  const history = useRef({ past: [] as Snapshot[], future: [] as Snapshot[], current: { room, items } as Snapshot, changedAt: 0, restoring: false });
+  const [steps, setSteps] = useState({ undo: 0, redo: 0 });
+  useEffect(() => {
+    const h = history.current;
+    if (h.current.room === room && h.current.items === items) return;
+    const now = Date.now();
+    if (h.restoring) {
+      h.restoring = false;
+    } else {
+      if (now - h.changedAt > MERGE_WITHIN) h.past = [...h.past, h.current].slice(-HISTORY_LIMIT);
+      h.future = [];
+      h.changedAt = now;
+    }
+    h.current = { room, items };
+    // oxlint-disable-next-line react/set-state-in-effect -- the history lives in a ref; the buttons need its size
+    setSteps({ undo: h.past.length, redo: h.future.length });
+  }, [room, items]);
+
+  function travel(direction: "undo" | "redo") {
+    const h = history.current;
+    const from = direction === "undo" ? h.past : h.future;
+    const target = from.at(-1);
+    if (!target) return;
+    if (direction === "undo") {
+      h.past = h.past.slice(0, -1);
+      h.future = [...h.future, h.current];
+    } else {
+      h.future = h.future.slice(0, -1);
+      h.past = [...h.past, h.current];
+    }
+    h.restoring = true;
+    h.changedAt = 0;
+    setSteps({ undo: h.past.length, redo: h.future.length });
+    setDraftState(target.room);
+    setRoom(target.room);
+    dispatch({ type: "restore", items: target.items });
+  }
+
   return {
     draft,
     room,
+    canUndo: steps.undo > 0,
+    canRedo: steps.redo > 0,
+    undo: () => travel("undo"),
+    redo: () => travel("redo"),
     items,
     selected,
     outside,

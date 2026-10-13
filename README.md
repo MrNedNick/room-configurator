@@ -43,6 +43,10 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   turn, Delete, Escape, or an exact position typed in — all of them work
   without the 3D view. A move through a wall is refused and the piece stays. Escape, a cancelled
   pointer or leaving the window cancels a drag and restores camera controls.
+- **Undo and redo** — every room and furniture change can be taken back and
+  forward (↶ ↷ in the header, ⌘/Ctrl+Z and ⇧⌘/Ctrl+Z or Ctrl+Y); a drag or a
+  burst of arrow presses is one step. Inside a text field the field's own
+  undo applies.
 - **Finishes and light** — five floors, four wall colours and six furniture
   finishes, each with its own roughness and sheen; morning, day, evening and
   night light; lamps from the catalogue glow and light the room around them.
@@ -57,11 +61,14 @@ lengths, crossing walls, floor area, camera fitting) is plain TypeScript in
   scale, with wall lengths, every piece by name, the floor area and a scale
   bar; save the whole room to a JSON file and open it again. A file is
   checked first and the reason is given if it can't be opened (walls that
-  cross are named); opening over a furnished room asks before replacing it.
+  cross are named, damaged room fields and furniture the catalogue doesn't
+  have or that repeats an id are refused); opening over a furnished room asks
+  before replacing it.
 - **Kept between visits** — the room, its furniture, finishes and light are
   saved in the browser; rooms saved by earlier versions open with defaults.
   Saved data that no longer reads is not overwritten: the page says so and
-  keeps it aside before starting over.
+  keeps it aside before starting over. If the browser refuses to store the
+  room (private mode, a full quota), the page says it won't be kept.
 - **When 3D isn't available** — without WebGL the editor still works; if the
   browser takes the graphics context back, the view says so and restarts on
   request. Three.js is loaded after the editor, which is usable first.
