@@ -152,8 +152,13 @@ export function useRoom() {
   }
 
   // Saving is the one outside system to keep in step; nothing is written over data that didn't read.
+  // A failed write (private mode, a full quota) is reported, not swallowed: the room won't come back.
+  const [saveFailed, setSaveFailed] = useState(false);
   useEffect(() => {
-    if (unreadable === null) saveScene({ version: SCENE_VERSION, room, items, finish, lighting });
+    if (unreadable !== null) return;
+    const saved = saveScene({ version: SCENE_VERSION, room, items, finish, lighting });
+    // oxlint-disable-next-line react/set-state-in-effect -- mirrors the result of the write just made
+    setSaveFailed(!saved);
   }, [room, items, finish, lighting, unreadable]);
 
   return {
@@ -166,6 +171,7 @@ export function useRoom() {
     itemError,
     errorAction,
     unreadable,
+    saveFailed,
     setDraft,
     usePreset(name: keyof typeof PRESETS) {
       setDraft(PRESETS[name]);

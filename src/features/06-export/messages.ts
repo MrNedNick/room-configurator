@@ -13,6 +13,6 @@ export function describeExportError(error: ExportError): string {
         ? `The room in that file has walls that cross (wall ${error.walls[0]! + 1} and wall ${error.walls[1]! + 1}), so it can't be opened.`
         : "The room in that file isn't a valid room, so it can't be opened.";
     case "items-invalid":
-      return "The furniture in that file is damaged, so the room can't be opened.";
+      return "The furniture in that file is damaged or names pieces this planner doesn't have, so the room can't be opened.";
   }
 }

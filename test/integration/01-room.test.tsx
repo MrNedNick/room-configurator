@@ -3,7 +3,7 @@
  * The first scenario end to end through the real UI: pick a room, change it, break it, fix it, switch
  * the camera, reload — and the geometry the 3D view is built from matches what the form says.
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import App from "../../src/App";
 import { bounds, cameraPreset, floorArea, validateRoom, walls } from "../../src/domain/01-room";
@@ -60,5 +60,16 @@ describe("room and camera — integration", () => {
     expect(cameraPreset(room.value, "perspective").position[1]).toBeGreaterThan(room.value.height);
     expect(floorArea(room.value)).toBeGreaterThan(0);
     expect(walls(room.value)).toHaveLength(preset.corners.length);
+  });
+
+  it("edge case, storage refuses the write: the page says the room won't be kept", () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+    render(<App />);
+    expect(screen.getByText(/isn't keeping the room/)).toBeTruthy();
+    setItem.mockRestore();
+    fireEvent.change(screen.getByLabelText("Corner 2 x"), { target: { value: "6" } });
+    expect(screen.queryByText(/isn't keeping the room/)).toBeNull();
   });
 });

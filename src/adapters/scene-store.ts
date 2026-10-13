@@ -1,5 +1,5 @@
 import { validateRoom, type Room } from "../domain/01-room";
-import { normaliseRotation, type Item } from "../domain/02-catalog";
+import { FURNITURE, normaliseRotation, type Item } from "../domain/02-catalog";
 import { DEFAULT_FINISH, DEFAULT_LIGHTING, readFinish, readLighting, type Finish, type Lighting } from "../domain/04-finish";
 import { exportError, type ExportError } from "../domain/06-export";
 import { err, ok, type Result } from "../domain/result";
@@ -18,14 +18,22 @@ export interface StoredScene {
 
 export type LoadError = { kind: "unreadable"; raw: string };
 
+/**
+ * Furniture from a saved scene. A piece the catalogue doesn't have, or two pieces sharing an id, would
+ * render as nothing or move together — so the whole list is refused rather than half-loaded.
+ */
 function readItems(raw: unknown): Item[] {
   if (!Array.isArray(raw)) throw new Error("items");
+  const known = new Set(FURNITURE.map((entry) => entry.id));
+  const seen = new Set<string>();
   return raw.map((entry) => {
-    const item = entry as Item;
+    const item = (entry ?? {}) as Item;
     const { x, z, rotation } = item.transform ?? {};
     if (typeof item.id !== "string" || typeof item.catalogId !== "string" || ![x, z, rotation].every(Number.isFinite)) {
       throw new Error("item");
     }
+    if (!known.has(item.catalogId) || seen.has(item.id)) throw new Error("item");
+    seen.add(item.id);
     const read: Item = { id: item.id, catalogId: item.catalogId, name: String(item.name ?? item.catalogId), transform: { x, z, rotation: normaliseRotation(rotation) } };
     return typeof item.materialId === "string" ? { ...read, materialId: item.materialId } : read;
   });
@@ -48,7 +56,13 @@ export function parseScene(raw: string): Result<StoredScene, ExportError> {
   if (!data || typeof data !== "object" || !data.room || typeof data.version !== "number") return err(exportError("not-a-scene"));
   if (data.version > SCENE_VERSION) return err(exportError("newer-version"));
   if (![1, 2, SCENE_VERSION].includes(data.version)) return err(exportError("not-a-scene"));
-  const room = validateRoom(data.room);
+  // Only well-formed fields reach the room rules; a damaged file says so instead of throwing.
+  const shape = data.room as unknown as { name?: unknown; corners?: unknown; height?: unknown };
+  const corners = Array.isArray(shape.corners) && shape.corners.every((corner) => corner !== null && typeof corner === "object") ? (shape.corners as Room["corners"]) : null;
+  if (!corners || typeof shape.height !== "number" || (shape.name !== undefined && typeof shape.name !== "string")) {
+    return err(exportError("room-invalid", { room: "not-a-number" }));
+  }
+  const room = validateRoom({ name: (shape.name as string | undefined) ?? "", corners, height: shape.height });
   if (!room.ok) return err(exportError("room-invalid", { room: room.error.reason, ...(room.error.walls ? { walls: room.error.walls } : {}) }));
   let items: Item[];
   try {

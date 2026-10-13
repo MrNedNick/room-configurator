@@ -52,6 +52,12 @@ describe("scene files", () => {
     ["a newer version", JSON.stringify({ ...furnished, version: 9 }), { reason: "newer-version" }],
     ["crossing walls", crossingWallsFile, { reason: "room-invalid", room: "walls-intersect", walls: [0, 2] }],
     ["broken furniture", JSON.stringify({ ...furnished, items: [{ id: 1 }] }), { reason: "items-invalid" }],
+    ["a room with damaged fields", JSON.stringify({ ...furnished, room: { name: 3, corners: "none", height: "2.7" } }), { reason: "room-invalid", room: "not-a-number" }],
+    ["a room whose corners aren't points", JSON.stringify({ ...furnished, room: { ...furnished.room, corners: [null, 1, 2] } }), { reason: "room-invalid", room: "not-a-number" }],
+    ["a room that is a string", JSON.stringify({ ...furnished, room: "kitchen" }), { reason: "room-invalid", room: "not-a-number" }],
+    ["furniture the catalogue doesn't have", JSON.stringify({ ...furnished, items: [{ ...furnished.items[0], catalogId: "spaceship" }] }), { reason: "items-invalid" }],
+    ["two pieces with one id", JSON.stringify({ ...furnished, items: [furnished.items[0], { ...furnished.items[0] }] }), { reason: "items-invalid" }],
+    ["a null piece", JSON.stringify({ ...furnished, items: [null] }), { reason: "items-invalid" }],
   ])("says what is wrong with %s", (_label, text, error) => {
     expect(parseScene(text)).toEqual({ ok: false, error: { kind: "export", ...error } });
   });

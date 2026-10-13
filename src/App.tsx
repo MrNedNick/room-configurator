@@ -89,6 +89,12 @@ export default function App() {
         </div>
       )}
 
+      {state.saveFailed && (
+        <div className="notice" role="status">
+          <p>This browser isn't keeping the room — it will be gone after a reload. Save a room file to keep it.</p>
+        </div>
+      )}
+
       <main className="layout">
         <RoomEditor
           draft={state.draft}
